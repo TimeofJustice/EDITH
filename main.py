@@ -11,7 +11,7 @@ from nextcord.ext.application_checks import has_permissions, ApplicationMissingP
 
 import instance
 from events.commands import calculator, poll as poll_, \
-    weather as weather_, purge as purge_
+    weather as weather_, purge as purge_, meme as meme_
 from mysql_bridge import Mysql
 
 
@@ -212,6 +212,7 @@ class Bot:
                                           f"URL: {attachment.url}\n\n"
 
                             embed.add_field(name="Attachment", value=attachments, inline=False)
+                            embed.set_image(url=attachment.url)
 
                     await messages_channel.send(embed=embed)
 
@@ -304,6 +305,15 @@ class Bot:
         - 
         '''
 
+        '''
+        on_member_join
+        on_member_remove
+        on_guild_join
+        on_guild_remove
+        on_message (Points)
+        scm
+        '''
+
     def __init_commands(self):
         bot = self.__bot
         mysql = self.__mysql
@@ -369,6 +379,21 @@ class Bot:
                 )
         ):
             command = purge_.Command(interaction, self, {"amount": amount})
+            await command.run()
+
+        @bot.slash_command(
+            description="Shows a random meme from a subreddit!",
+            guild_ids=guild_ids
+        )
+        async def meme(
+                interaction: nextcord.Interaction,
+                subreddit: str = nextcord.SlashOption(
+                    name="subreddit",
+                    description="Subreddit the meme should be from!",
+                    required=False
+                )
+        ):
+            command = meme_.Command(interaction, self, {"subreddit": subreddit})
             await command.run()
 
         @bot.slash_command(
@@ -475,6 +500,7 @@ class Bot:
             await interaction.send(embed=embed, ephemeral=True)
 
         @purge.error
+        @logging.error
         async def command_error(error: nextcord.Interaction, ctx):
             if type(ctx) == ApplicationMissingPermissions:
                 embed = nextcord.Embed(
@@ -486,6 +512,21 @@ class Bot:
 
                 with open('pics/403.png', 'rb') as fp:
                     await error.send(embed=embed, ephemeral=True, file=nextcord.File(fp, '403.png'))
+
+        '''
+        achievements
+        r6s
+        logs
+        order66
+        random
+        music (search, play, stop, pause, resume, skip, status, queue)
+        backup
+        tts
+        settings (role, notifications, settings)
+        scm
+        profile (XP)
+        playlists
+        '''
 
 
 client = Bot()
