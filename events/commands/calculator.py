@@ -1,7 +1,7 @@
 import json
 import nextcord
 
-import view
+from events import view
 
 
 class View(view.View):

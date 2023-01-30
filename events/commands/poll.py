@@ -2,8 +2,7 @@ import json
 from datetime import datetime
 import nextcord
 
-import instance
-import view
+from events import view, instance
 from mysql_bridge import Mysql
 
 

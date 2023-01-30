@@ -5,13 +5,16 @@ from datetime import datetime
 import os
 from pathlib import Path
 import nextcord
+from nextcord import ApplicationCheckFailure
 from nextcord.ext import commands
 from colorama import Style, Fore
-from nextcord.ext.application_checks import has_permissions, ApplicationMissingPermissions
+from nextcord.ext.application_checks import has_permissions, ApplicationMissingPermissions, check, has_role
 
-import instance
-from events.commands import calculator, poll as poll_, \
-    weather as weather_, purge as purge_, meme as meme_
+from events import instance
+from events.commands import calculator as calculator_command, poll as poll_command, \
+    weather as weather_command, purge as purge_command, meme as meme_command, up as up_command, about as about_command, \
+    logging as logging_command, order66 as order66_command
+from events.listeners import message as message_listener, message_delete as message_delete_listener
 from mysql_bridge import Mysql
 
 
@@ -75,6 +78,8 @@ class Bot:
                                                    "msg_channel BIGINT(255))")
         mysql.add_colm(table="settings", colm="log_category", definition="BIGINT(255)", clause="AFTER msg_channel")
         mysql.add_colm(table="settings", colm="messages_channel", definition="BIGINT(255)", clause="AFTER log_category")
+        mysql.add_colm(table="settings", colm="logging_level", definition="INT(255)",
+                       clause="DEFAULT (0) AFTER messages_channel")
         mysql.add_colm(table="settings", colm="error_channel", definition="BIGINT(255)", clause="AFTER msg_channel")
 
         mysql.create_table(table="guilds", colms="(id BIGINT(255) PRIMARY KEY,"
@@ -93,6 +98,9 @@ class Bot:
                                                        "poll_id BIGINT(255) not null,"
                                                        "FOREIGN KEY (poll_id) REFERENCES instances(message_id))")
         mysql.add_colm(table="poll_submits", colm="answer_id", definition="BIGINT(255)", clause="AFTER poll_id")
+
+        mysql.create_table(table="custom_channels", colms="(id bigint(255) primary key,"
+                                                          "guild_id bigint(255) not null)")
 
     async def __idle_handler(self):
         status_index = 0
@@ -120,8 +128,9 @@ class Bot:
         mysql = Mysql()
         sessions = mysql.select(table="instances", colms="*")
         views = {
-            "calculator": calculator.View,
-            "poll": poll_.View
+            "calculator": calculator_command.View,
+            "poll": poll_command.View,
+            "order66": order66_command.View
         }
 
         start = datetime.now()
@@ -179,140 +188,13 @@ class Bot:
 
         @bot.event
         async def on_message(message: nextcord.Message):
-            guild = message.guild
-            channel = message.channel
-            author = message.author
-
-            if guild is not None:
-                guild_settings = \
-                    mysql.select(table="guilds",
-                                 colms="guilds.id, settings.messages_channel, settings.id AS settings_id",
-                                 clause=f"INNER JOIN settings ON guilds.settings=settings.id WHERE guilds.id={guild.id}")[
-                        0]
-
-                if guild_settings["messages_channel"] is not None and not author.bot:
-                    messages_channel = guild.get_channel(guild_settings["messages_channel"])
-
-                    embed = nextcord.Embed(
-                        color=nextcord.Colour.green(),
-                        description=message.content
-                    )
-
-                    embed.set_author(name=f"Message send (ID:{message.id})")
-                    embed.add_field(name="Author", value=f"**Discord-Name:** {author.name} (ID:{author.id})\n"
-                                                         f"**Server-Name:** {author.display_name}")
-
-                    embed.add_field(name="Channel",
-                                    value=f"**Category:** {channel.category}\n"
-                                          f"**Channel:** {channel} (ID:{channel.id})")
-
-                    if message.attachments:
-                        for attachment in message.attachments:
-                            attachments = f"Name: {attachment.filename}\n" \
-                                          f"URL: {attachment.url}\n\n"
-
-                            embed.add_field(name="Attachment", value=attachments, inline=False)
-                            embed.set_image(url=attachment.url)
-
-                    await messages_channel.send(embed=embed)
-
-                if not author.bot:
-                    print("User gained Point")
+            listener = message_listener.Listener(self)
+            await listener.call(message)
 
         @bot.event
         async def on_raw_message_delete(payload: nextcord.RawMessageDeleteEvent):
-            guild = bot.get_guild(payload.guild_id)
-
-            if guild is not None:
-                channel = guild.get_channel(payload.channel_id)
-
-                guild_settings = mysql.select(table="guilds",
-                                              colms="guilds.id, settings.messages_channel, settings.id AS settings_id",
-                                              clause=f"INNER JOIN settings ON guilds.settings=settings.id "
-                                                     f"WHERE guilds.id={guild.id}")[0]
-
-                if guild_settings["messages_channel"] is not None and channel.id != guild_settings["messages_channel"]:
-                    messages_channel = guild.get_channel(guild_settings["messages_channel"])
-
-                    embed = nextcord.Embed(
-                        color=nextcord.Colour.red()
-                    )
-
-                    embed.set_author(name=f"Message deleted (ID:{payload.message_id})")
-
-                    embed.add_field(name="Channel",
-                                    value=f"**Category:** {channel.category}\n"
-                                          f"**Channel:** {channel} (ID:{channel.id})")
-
-                    await messages_channel.send(embed=embed)
-
-        '''
-        on_raw_message_edit
-        on_raw_reaction_add
-        on_raw_reaction_remove
-        on_raw_reaction_clear
-        on_raw_reaction_clear_emoji
-        on_guild_channel_delete
-        on_guild_channel_create
-        on_guild_channel_update
-        on_guild_channel_pins_update
-        on_thread_join
-        on_thread_remove
-        on_thread_delete
-        on_thread_member_join
-        on_thread_member_remove
-        on_thread_update
-        on_guild_integrations_update
-        on_integration_create
-        on_integration_update
-        on_raw_integration_delete
-        on_webhooks_update
-        on_member_join
-        on_member_remove
-        on_member_update
-        on_user_update
-        on_guild_update
-        on_guild_role_create
-        on_guild_role_delete
-        on_guild_role_update
-        on_guild_emojis_update
-        on_guild_stickers_update
-        on_voice_state_update
-        on_stage_instance_create
-        on_stage_instance_delete
-        on_stage_instance_update
-        on_member_ban
-        on_member_unban
-        on_invite_create
-        on_invite_delete
-        on_guild_scheduled_event_create
-        on_guild_scheduled_event_update
-        on_guild_scheduled_event_delete
-        on_guild_scheduled_event_user_add
-        on_guild_scheduled_event_user_remove
-        on_auto_moderation_rule_create
-        on_auto_moderation_rule_update
-        on_auto_moderation_rule_delete
-        on_auto_moderation_action_execution
-        
-        Low:
-        - 
-        Middle:
-        - 
-        High:
-        - 
-        Highest:
-        - 
-        '''
-
-        '''
-        on_member_join
-        on_member_remove
-        on_guild_join
-        on_guild_remove
-        on_message (Points)
-        scm
-        '''
+            listener = message_delete_listener.Listener(self)
+            await listener.call(payload)
 
     def __init_commands(self):
         bot = self.__bot
@@ -324,14 +206,20 @@ class Bot:
         for guild_data in guilds_data:
             guild_ids.append(guild_data["id"])
 
+        def is_me():
+            def predicate(interaction: nextcord.Interaction):
+                return interaction.user.id == 243747656470495233
+
+            return check(predicate)
+
         @bot.slash_command(
             description="Opens an individual calculator, that supports basic mathematical equations.",
             guild_ids=guild_ids
         )
-        async def calc(
+        async def calculator(
                 interaction: nextcord.Interaction
         ):
-            command = instance.Instance(view_callback=calculator.View, bot_instance=self)
+            command = instance.Instance(view_callback=calculator_command.View, bot_instance=self)
             await command.create(interaction, "calculator")
 
         @bot.slash_command(
@@ -347,7 +235,7 @@ class Bot:
                     max_value=4
                 )
         ):
-            await interaction.response.send_modal(poll_.Modal(number, self, interaction.guild))
+            await interaction.response.send_modal(poll_command.Modal(number, self, interaction.guild))
 
         @bot.slash_command(
             description="That's how the weather outside is, for you caveman!",
@@ -360,7 +248,7 @@ class Bot:
                     description="Where should I look?"
                 )
         ):
-            command = weather_.Command(interaction, self, {"city": city})
+            command = weather_command.Command(interaction, self, {"city": city})
             await command.run()
 
         @bot.slash_command(
@@ -378,7 +266,7 @@ class Bot:
                     default=1
                 )
         ):
-            command = purge_.Command(interaction, self, {"amount": amount})
+            command = purge_command.Command(interaction, self, {"amount": amount})
             await command.run()
 
         @bot.slash_command(
@@ -393,7 +281,7 @@ class Bot:
                     required=False
                 )
         ):
-            command = meme_.Command(interaction, self, {"subreddit": subreddit})
+            command = meme_command.Command(interaction, self, {"subreddit": subreddit})
             await command.run()
 
         @bot.slash_command(
@@ -410,14 +298,8 @@ class Bot:
         async def up(
                 interaction: nextcord.Interaction
         ):
-            text = f"Online since {self.get_running_time()}!"
-            msg = nextcord.Embed(
-                title="",
-                description=text,
-                color=nextcord.Colour.gold()
-            )
-
-            await interaction.send(embed=msg, ephemeral=True)
+            command = up_command.Command(interaction, self)
+            await command.run()
 
         @faq.subcommand(
             description="About E.D.I.T.H!"
@@ -425,18 +307,8 @@ class Bot:
         async def about(
                 interaction: nextcord.Interaction
         ):
-            owner = await bot.fetch_user(243747656470495233)
-
-            embed = nextcord.Embed(
-                title="About E.D.I.T.H!",
-                description=f"I am **E.D.I.T.H**, I am the 4. generation of the bot from {owner.mention}.\n"
-                            f"\n"
-                            f"Developed in **Python** via **nextcord**.\n"
-                            f"I am the version **{self.get_version()}**!",
-                colour=nextcord.Colour.random()
-            )
-
-            await interaction.send(embed=embed, ephemeral=True)
+            command = about_command.Command(interaction, self)
+            await command.run()
 
         @bot.slash_command(
             description="Activates the E.D.I.T.H. logging-tool!",
@@ -445,88 +317,58 @@ class Bot:
         @has_permissions(administrator=True)
         async def logging(
                 interaction: nextcord.Interaction,
-                status: int = nextcord.SlashOption(
+                level: int = nextcord.SlashOption(
                     name="level",
                     description="What level of logging do you want to use?",
                     choices={"off": 0, "low": 1, "middle": 2, "high": 3, "highest": 4}
                 )
         ):
-            guild = interaction.guild
+            command = logging_command.Command(interaction, self, {"level": level})
+            await command.run()
 
-            guild_settings = mysql.select(table="guilds",
-                                          colms="guilds.id, settings.log_category, settings.id AS settings_id",
-                                          clause=f"INNER JOIN settings ON guilds.settings=settings.id "
-                                                 f"WHERE guilds.id={guild.id}")[0]
-
-            if status != 0 and guild_settings["log_category"] is None:
-                category = await guild.create_category(name="E.D.I.T.H Logging")
-                messages_channel = await category.create_text_channel(name="messages")
-
-                await category.set_permissions(guild.default_role, view_channel=False)
-
-                mysql.update(table="settings", value=f"log_category={category.id}",
-                             clause=f"WHERE id='{guild_settings['settings_id']}'")
-                mysql.update(table="settings", value=f"messages_channel={messages_channel.id}",
-                             clause=f"WHERE id='{guild_settings['settings_id']}'")
-
-                embed = nextcord.Embed(
-                    description="The logging-tool is now enabled!",
-                    colour=nextcord.Colour.green()
+        @bot.slash_command(
+            description="Executes the order-66!",
+            guild_ids=guild_ids
+        )
+        @is_me()
+        async def order66(
+                interaction: nextcord.Interaction,
+                target: nextcord.User = nextcord.SlashOption(
+                    name="target",
+                    description="Who is you target?",
+                    required=True
                 )
-            elif status != 0 and guild_settings["log_category"] is not None:
-                embed = nextcord.Embed(
-                    description="The logging-tool is already running!",
-                    colour=nextcord.Colour.red()
-                )
-            else:
-                category = guild.get_channel(guild_settings["log_category"])
-                channels = category.channels
-
-                for channel in channels:
-                    await channel.delete()
-
-                await category.delete()
-
-                mysql.update(table="settings", value=f"log_category=Null",
-                             clause=f"WHERE id='{guild_settings['settings_id']}'")
-                mysql.update(table="settings", value=f"messages_channel=Null",
-                             clause=f"WHERE id='{guild_settings['settings_id']}'")
-
-                embed = nextcord.Embed(
-                    description="The logging-toll is now disabled!",
-                    colour=nextcord.Colour.orange()
-                )
-
-            await interaction.send(embed=embed, ephemeral=True)
+        ):
+            command = instance.Instance(view_callback=order66_command.View, bot_instance=self)
+            await command.create(interaction, "order66", data={"target": target.id})
 
         @purge.error
         @logging.error
+        @order66.error
         async def command_error(error: nextcord.Interaction, ctx):
-            if type(ctx) == ApplicationMissingPermissions:
+            if type(ctx) == ApplicationMissingPermissions or type(ctx) == ApplicationCheckFailure:
                 embed = nextcord.Embed(
                     color=nextcord.Colour.orange(),
-                    description="**YOU SHALL NOT PASS**"
+                    title="**YOU SHALL NOT PASS**",
+                    description="You don't have enough permission to perform this command!"
                 )
 
                 embed.set_image(url="attachment://403.png")
 
                 with open('pics/403.png', 'rb') as fp:
                     await error.send(embed=embed, ephemeral=True, file=nextcord.File(fp, '403.png'))
+            else:
+                embed = nextcord.Embed(
+                    color=nextcord.Colour.orange(),
+                    title="**Unknown error**",
+                    description=f"An **unknown error** occurred\n"
+                                f"||{type(ctx)}||"
+                )
 
-        '''
-        achievements
-        r6s
-        logs
-        order66
-        random
-        music (search, play, stop, pause, resume, skip, status, queue)
-        backup
-        tts
-        settings (role, notifications, settings)
-        scm
-        profile (XP)
-        playlists
-        '''
+                embed.set_image(url="attachment://unknown_error.gif")
+
+                with open('pics/unknown_error.gif', 'rb') as fp:
+                    await error.send(embed=embed, ephemeral=True, file=nextcord.File(fp, 'unknown_error.gif'))
 
 
 client = Bot()

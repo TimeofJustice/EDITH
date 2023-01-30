@@ -1,7 +1,7 @@
 import math
 import nextcord
 
-import command
+from events import command
 
 
 class Command(command.Command):

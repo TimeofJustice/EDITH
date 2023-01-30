@@ -5,7 +5,7 @@ from datetime import datetime
 
 import nextcord
 
-import command
+from events import command
 
 
 class Command(command.Command):

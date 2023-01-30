@@ -1,9 +1,8 @@
 import json
-
 import nextcord
 import requests
 
-import command
+from events import command
 
 
 class Command(command.Command):
