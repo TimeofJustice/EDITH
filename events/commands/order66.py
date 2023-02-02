@@ -96,7 +96,7 @@ class View(view.View):
 
             with open('pics/order66-3.gif', 'rb') as fp:
                 await self.__message.edit(content="", embed=embed,
-                                          file=nextcord.File(fp, 'order66-3.gif'))
+                                          file=nextcord.File(fp, 'order66-3.gif'), view=self)
 
             voice_client = await start_channel.connect()
 
@@ -148,6 +148,10 @@ class View(view.View):
 
             self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
 
+            await asyncio.sleep(10)
+
+            await self.__message.delete()
+
     def __is_author(self, interaction: nextcord.Interaction, exception_owner=False):
         user = interaction.user
         if self.__author.id == user.id or (exception_owner and user.id == self.__bot_instance.owner_id):
@@ -161,7 +165,8 @@ class View(view.View):
 
             embed = nextcord.Embed(
                 title="Order-66 stopped!",
-                description="I have brought peace, freedom, justice, and security to my new empire!",
+                description="I have brought peace, freedom, justice, "
+                            "\nand security to my new empire!",
                 colour=nextcord.Colour.orange()
             )
 
@@ -169,10 +174,6 @@ class View(view.View):
 
             with open('pics/order66-1.gif', 'rb') as fp:
                 await self.__message.edit(content="", embed=embed, view=None, file=nextcord.File(fp, 'order66-1.gif'))
-
-            await asyncio.sleep(5)
-
-            await self.__message.delete()
 
         return args
 

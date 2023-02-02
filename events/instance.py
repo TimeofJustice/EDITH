@@ -26,7 +26,6 @@ class Instance:
                      values=(message.id, author.id, channel.id, guild.id, title, json.dumps(data)))
 
         message_view = self.__view_callback(author, guild, channel, message, self.__bot_instance, data)
-        await message.edit(view=message_view)
         await message_view.init()
 
     async def initiate(self, instance_data):

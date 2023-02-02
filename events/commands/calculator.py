@@ -74,7 +74,7 @@ class View(view.View):
             description=f"```{screen}|```"
         )
         embed.set_footer(text="ㅤ" * 27)
-        await self.__message.edit(content="", embed=embed)
+        await self.__message.edit(content="", embed=embed, view=self)
 
     async def __sync_screen(self):
         screen = self.__term.replace("*", "×").replace("/", "÷")

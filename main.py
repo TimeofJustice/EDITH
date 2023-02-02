@@ -1,6 +1,8 @@
 import _thread
 import asyncio
 import configparser
+import math
+import threading
 from datetime import datetime
 import os
 from pathlib import Path
@@ -124,14 +126,8 @@ class Bot:
         loop.run_until_complete(self.__idle_handler())
         loop.close()
 
-    async def __initiate_instances(self):
-        mysql = Mysql()
-        sessions = mysql.select(table="instances", colms="*")
-        views = {
-            "calculator": calculator_command.View,
-            "poll": poll_command.View,
-            "order66": order66_command.View
-        }
+    async def __initiate_instances(self, sessions, views):
+        mysql = self.__mysql
 
         start = datetime.now()
         for session in sessions:
@@ -151,8 +147,6 @@ class Bot:
                     await message.delete()
                 except Exception as e:
                     print(e)
-        print(f"{Fore.GREEN}Es wurden {len(sessions)} Instanzen in "
-              f"{(datetime.now() - start).seconds}s geladen.{Style.RESET_ALL}")
 
     def __init_events(self):
         bot = self.__bot
@@ -182,7 +176,6 @@ class Bot:
                 self.__is_already_running = True
 
                 _thread.start_new_thread(self.__init_threads, ())
-                await self.__initiate_instances()
             else:
                 print("(BOT) Reconnected")
 
@@ -195,6 +188,25 @@ class Bot:
         async def on_raw_message_delete(payload: nextcord.RawMessageDeleteEvent):
             listener = message_delete_listener.Listener(self)
             await listener.call(payload)
+
+        @bot.event
+        async def on_guild_available(guild):
+            message_sessions = mysql.select(table="instances", colms="*",
+                                            clause=f"WHERE guild_id={guild.id} and type!='order66'")
+            voice_session = mysql.select(table="instances", colms="*",
+                                         clause=f"WHERE guild_id={guild.id} and type='order66'")
+            views = {
+                "calculator": calculator_command.View,
+                "poll": poll_command.View,
+                "order66": order66_command.View
+            }
+
+            start = datetime.now()
+            await self.__initiate_instances(message_sessions, views)
+            print(f"{Fore.GREEN}Es wurden {len(message_sessions)} Instanzen für {guild} in "
+                  f"{(datetime.now() - start).seconds}s geladen.{Style.RESET_ALL}")
+
+            await self.__initiate_instances(voice_session, views)
 
     def __init_commands(self):
         bot = self.__bot
