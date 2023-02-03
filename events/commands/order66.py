@@ -99,12 +99,13 @@ class View(view.View):
                                           file=nextcord.File(fp, 'order66-3.gif'), view=self)
 
             voice_client = await start_channel.connect()
+            await guild.change_voice_state(channel=start_channel, self_deaf=True)
 
             if platform == "win32":
                 player = nextcord.FFmpegPCMAudio(source='mp3/Execute_Order_66.mp3',
-                                                 executable="drivers/ffmpeg.exe")
+                                                 executable="drivers/ffmpeg.exe", options="-loglevel panic")
             else:
-                player = nextcord.FFmpegPCMAudio(source='mp3/Execute_Order_66.mp3')
+                player = nextcord.FFmpegPCMAudio(source='mp3/Execute_Order_66.mp3', options="-loglevel panic")
             voice_client.play(player)
 
             while voice_client.is_playing():
@@ -151,13 +152,6 @@ class View(view.View):
             await asyncio.sleep(10)
 
             await self.__message.delete()
-
-    def __is_author(self, interaction: nextcord.Interaction, exception_owner=False):
-        user = interaction.user
-        if self.__author.id == user.id or (exception_owner and user.id == self.__bot_instance.owner_id):
-            return True
-        else:
-            return False
 
     async def __callback_stop(self, interaction: nextcord.Interaction, args):
         if self.__is_author(interaction):

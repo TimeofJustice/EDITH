@@ -79,7 +79,7 @@ class View(view.View):
                                color=nextcord.Colour.blue())
         embed.set_author(name=self.__author.name, icon_url=self.__author.avatar)
         embed.set_footer(text="ㅤ" * 22)
-        await self.__message.edit(content="", embed=embed)
+        await self.__message.edit(content="", embed=embed, view=self)
 
 
 class PollDropdown(nextcord.ui.Select):

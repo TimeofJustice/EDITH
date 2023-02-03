@@ -15,7 +15,7 @@ from nextcord.ext.application_checks import has_permissions, ApplicationMissingP
 from events import instance
 from events.commands import calculator as calculator_command, poll as poll_command, \
     weather as weather_command, purge as purge_command, meme as meme_command, up as up_command, about as about_command, \
-    logging as logging_command, order66 as order66_command
+    logging as logging_command, order66 as order66_command, tts as tts_command
 from events.listeners import message as message_listener, message_delete as message_delete_listener
 from mysql_bridge import Mysql
 
@@ -129,6 +129,12 @@ class Bot:
     async def __initiate_instances(self, sessions, views):
         mysql = self.__mysql
 
+        for guild in self.__bot.guilds:
+            bot_client = guild.voice_client
+
+            if bot_client is not None:
+                await bot_client.disconnect(force=True)
+
         start = datetime.now()
         for session in sessions:
             try:
@@ -148,6 +154,8 @@ class Bot:
                 except Exception as e:
                     print(e)
 
+        return len(sessions)
+
     def __init_events(self):
         bot = self.__bot
         mysql = self.__mysql
@@ -155,6 +163,8 @@ class Bot:
         @bot.event
         async def on_ready():
             if not self.__is_already_running:
+                await self.__bot.sync_all_application_commands()
+
                 guilds_data = mysql.select(table="guilds", colms="id")
                 guild_ids = []
                 __now = datetime.now()
@@ -192,21 +202,24 @@ class Bot:
         @bot.event
         async def on_guild_available(guild):
             message_sessions = mysql.select(table="instances", colms="*",
-                                            clause=f"WHERE guild_id={guild.id} and type!='order66'")
-            voice_session = mysql.select(table="instances", colms="*",
-                                         clause=f"WHERE guild_id={guild.id} and type='order66'")
+                                            clause=f"WHERE guild_id={guild.id} and "
+                                                   f"(type!='order66' and type!='tts')")
+            voice_sessions = mysql.select(table="instances", colms="*",
+                                          clause=f"WHERE guild_id={guild.id} and "
+                                                 f"(type='order66' or type='tts')")
             views = {
                 "calculator": calculator_command.View,
                 "poll": poll_command.View,
-                "order66": order66_command.View
+                "order66": order66_command.View,
+                "tts": tts_command.View
             }
 
             start = datetime.now()
-            await self.__initiate_instances(message_sessions, views)
-            print(f"{Fore.GREEN}Es wurden {len(message_sessions)} Instanzen für {guild} in "
-                  f"{(datetime.now() - start).seconds}s geladen.{Style.RESET_ALL}")
+            message_sessions_len = await self.__initiate_instances(message_sessions, views)
+            voice_sessions_len = await self.__initiate_instances(voice_sessions, views)
 
-            await self.__initiate_instances(voice_session, views)
+            print(f"{Fore.GREEN}Es wurden {message_sessions_len + voice_sessions_len} Instanzen für {guild} in "
+                  f"{(datetime.now() - start).seconds}s geladen.{Style.RESET_ALL}")
 
     def __init_commands(self):
         bot = self.__bot
@@ -353,6 +366,20 @@ class Bot:
         ):
             command = instance.Instance(view_callback=order66_command.View, bot_instance=self)
             await command.create(interaction, "order66", data={"target": target.id})
+
+        @bot.slash_command(
+            description="Plays a custom phrase!",
+            guild_ids=guild_ids
+        )
+        async def tts(
+                interaction: nextcord.Interaction,
+                phrase: str = nextcord.SlashOption(
+                    name="phrase",
+                    description="What should I say?"
+                )
+        ):
+            command = instance.Instance(view_callback=tts_command.View, bot_instance=self)
+            await command.create(interaction, "tts", data={"phrase": phrase})
 
         @purge.error
         @logging.error

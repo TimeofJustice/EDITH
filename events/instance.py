@@ -23,7 +23,8 @@ class Instance:
 
         mysql = Mysql()
         mysql.insert(table="instances", colms="(message_id, author_id, channel_id, guild_id, type, data)",
-                     values=(message.id, author.id, channel.id, guild.id, title, json.dumps(data)))
+                     values=(message.id, author.id, channel.id, guild.id, title,
+                             json.dumps(data, ensure_ascii=False)))
 
         message_view = self.__view_callback(author, guild, channel, message, self.__bot_instance, data)
         await message_view.init()
