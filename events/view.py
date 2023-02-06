@@ -4,7 +4,7 @@ from mysql_bridge import Mysql
 
 class View(nextcord.ui.View):
     def __init__(self, author, guild, channel, message, bot_instance, instance_data):
-        super().__init__()
+        super().__init__(timeout=None)
         self.__author = author
         self.__guild = guild
         self.__channel = channel

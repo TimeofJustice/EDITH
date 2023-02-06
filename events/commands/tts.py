@@ -16,7 +16,7 @@ class View(view.View):
 
         super().__init__(author, guild, channel, message, bot_instance, instance_data)
 
-        self.add_item(Button(label="Stop", row=0, args=("stop",),
+        self.add_item(Button(label="❌ Stop", row=0, args=("stop",),
                              style=nextcord.ButtonStyle.red, callback=self.__callback_stop))
 
     async def init(self):
@@ -103,10 +103,10 @@ class View(view.View):
 
             try:
                 output = gTTS(text=text, lang=lang_str, slow=False)
-                output.save("mp3/{}_tts.mp3".format(guild.id))
+                output.save("data/mp3/{}_tts.mp3".format(guild.id))
             except:
                 output = gTTS(text=text, lang="en", slow=False)
-                output.save("mp3/{}_tts.mp3".format(guild.id))
+                output.save("data/mp3/{}_tts.mp3".format(guild.id))
 
             embed = nextcord.Embed(
                 title=f"Execute TTS!",
@@ -117,10 +117,10 @@ class View(view.View):
             await self.__message.edit(content="", embed=embed, view=self)
 
             if platform == "win32":
-                player = nextcord.FFmpegPCMAudio("mp3/{}_tts.mp3".format(guild.id),
+                player = nextcord.FFmpegPCMAudio("data/mp3/{}_tts.mp3".format(guild.id),
                                                  executable="drivers/ffmpeg.exe", options="-loglevel panic")
             else:
-                player = nextcord.FFmpegPCMAudio("mp3/{}_tts.mp3".format(guild.id), options="-loglevel panic")
+                player = nextcord.FFmpegPCMAudio("data/mp3/{}_tts.mp3".format(guild.id), options="-loglevel panic")
             voice_client.play(player)
 
             session = self.__mysql.select(table="instances", colms="*",

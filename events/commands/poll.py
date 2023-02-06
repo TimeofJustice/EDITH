@@ -95,7 +95,7 @@ class PollDropdown(nextcord.ui.Select):
             self.__possibilities = json.loads(self.__possibilities)
 
         for answer in range(0, len(self.__possibilities)):
-            options.append(nextcord.SelectOption(label=f"{answer+1}. Answer",
+            options.append(nextcord.SelectOption(label=f"{answer + 1}. Answer",
                                                  description=self.__possibilities[answer][1]))
 
         options.append(nextcord.SelectOption(label=f"Abstain",

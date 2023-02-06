@@ -36,6 +36,6 @@ class Command(command.Command):
 
         embed.set_image(url="attachment://purged.gif")
 
-        with open('pics/purged.gif', 'rb') as fp:
+        with open('data/pics/purged.gif', 'rb') as fp:
             await self.__interaction.edit_original_message(embed=embed,
                                                            file=nextcord.File(fp, 'purged.gif'))

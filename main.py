@@ -15,7 +15,7 @@ from nextcord.ext.application_checks import has_permissions, ApplicationMissingP
 from events import instance
 from events.commands import calculator as calculator_command, poll as poll_command, \
     weather as weather_command, purge as purge_command, meme as meme_command, up as up_command, about as about_command, \
-    logging as logging_command, order66 as order66_command, tts as tts_command
+    logging as logging_command, order66 as order66_command, tts as tts_command, profile as profile_command
 from events.listeners import message as message_listener, message_delete as message_delete_listener
 from mysql_bridge import Mysql
 
@@ -210,6 +210,7 @@ class Bot:
             views = {
                 "calculator": calculator_command.View,
                 "poll": poll_command.View,
+                "profile": profile_command.View,
                 "order66": order66_command.View,
                 "tts": tts_command.View
             }
@@ -381,6 +382,24 @@ class Bot:
             command = instance.Instance(view_callback=tts_command.View, bot_instance=self)
             await command.create(interaction, "tts", data={"phrase": phrase})
 
+        @bot.slash_command(
+            description="Shows your or someone elses profile!",
+            guild_ids=guild_ids
+        )
+        async def profile(
+                interaction: nextcord.Interaction,
+                user: nextcord.User = nextcord.SlashOption(
+                    name="user",
+                    description="From who do you want to see the profile?",
+                    required=False
+                )
+        ):
+            if user is None:
+                user = interaction.user
+
+            command = instance.Instance(view_callback=profile_command.View, bot_instance=self)
+            await command.create(interaction, "profile", data={"user": user.id})
+
         @purge.error
         @logging.error
         @order66.error
@@ -394,7 +413,7 @@ class Bot:
 
                 embed.set_image(url="attachment://403.png")
 
-                with open('pics/403.png', 'rb') as fp:
+                with open('data/pics/403.png', 'rb') as fp:
                     await error.send(embed=embed, ephemeral=True, file=nextcord.File(fp, '403.png'))
             else:
                 embed = nextcord.Embed(
@@ -406,7 +425,7 @@ class Bot:
 
                 embed.set_image(url="attachment://unknown_error.gif")
 
-                with open('pics/unknown_error.gif', 'rb') as fp:
+                with open('data/pics/unknown_error.gif', 'rb') as fp:
                     await error.send(embed=embed, ephemeral=True, file=nextcord.File(fp, 'unknown_error.gif'))
 
 

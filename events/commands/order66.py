@@ -15,7 +15,7 @@ class View(view.View):
 
         super().__init__(author, guild, channel, message, bot_instance, instance_data)
 
-        self.add_item(Button(label="Stop", row=0, args=("stop",),
+        self.add_item(Button(label="❌ Stop", row=0, args=("stop",),
                              style=nextcord.ButtonStyle.red, callback=self.__callback_stop))
 
     async def init(self):
@@ -39,7 +39,7 @@ class View(view.View):
 
             embed.set_image(url="attachment://order66-2.gif")
 
-            with open('pics/order66-2.gif', 'rb') as fp:
+            with open('data/pics/order66-2.gif', 'rb') as fp:
                 await self.__message.edit(content="", embed=embed, view=None,
                                           file=nextcord.File(fp, 'order66-2.gif'))
 
@@ -63,7 +63,7 @@ class View(view.View):
 
                 embed.set_image(url="attachment://order66-2.gif")
 
-                with open('pics/order66-2.gif', 'rb') as fp:
+                with open('data/pics/order66-2.gif', 'rb') as fp:
                     await self.__message.edit(content="", embed=embed, view=None,
                                               file=nextcord.File(fp, 'order66-2.gif'))
 
@@ -94,7 +94,7 @@ class View(view.View):
 
             embed.set_image(url="attachment://order66-3.gif")
 
-            with open('pics/order66-3.gif', 'rb') as fp:
+            with open('data/pics/order66-3.gif', 'rb') as fp:
                 await self.__message.edit(content="", embed=embed,
                                           file=nextcord.File(fp, 'order66-3.gif'), view=self)
 
@@ -102,10 +102,10 @@ class View(view.View):
             await guild.change_voice_state(channel=start_channel, self_deaf=True)
 
             if platform == "win32":
-                player = nextcord.FFmpegPCMAudio(source='mp3/Execute_Order_66.mp3',
-                                                 executable="drivers/ffmpeg.exe", options="-loglevel panic")
+                player = nextcord.FFmpegPCMAudio(source='data/mp3/Execute_Order_66.mp3',
+                                                 executable="data/drivers/ffmpeg.exe", options="-loglevel panic")
             else:
-                player = nextcord.FFmpegPCMAudio(source='mp3/Execute_Order_66.mp3', options="-loglevel panic")
+                player = nextcord.FFmpegPCMAudio(source='data/mp3/Execute_Order_66.mp3', options="-loglevel panic")
             voice_client.play(player)
 
             while voice_client.is_playing():
@@ -153,7 +153,7 @@ class View(view.View):
 
             await self.__message.delete()
 
-    async def __callback_stop(self, interaction: nextcord.Interaction, args):
+    async def __callback_stop(self, interaction: nextcord.Interaction, *args):
         if self.__is_author(interaction):
             self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
 
@@ -164,10 +164,10 @@ class View(view.View):
                 colour=nextcord.Colour.orange()
             )
 
-            embed.set_image(url="attachment://order66-1.gif")
+            embed.set_image(url="attachment://order66-4.gif")
 
-            with open('pics/order66-1.gif', 'rb') as fp:
-                await self.__message.edit(content="", embed=embed, view=None, file=nextcord.File(fp, 'order66-1.gif'))
+            with open('data/pics/order66-4.gif', 'rb') as fp:
+                await self.__message.edit(content="", embed=embed, view=None, file=nextcord.File(fp, 'order66-4.gif'))
 
         return args
 
