@@ -2,6 +2,7 @@ import json
 import nextcord
 
 from events import view
+from events.view import Button
 
 
 class View(view.View):
@@ -57,13 +58,6 @@ class View(view.View):
                              style=nextcord.ButtonStyle.green, callback=self.__callback_equals))
         self.add_item(Button(label=f"ㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤ Close ㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤ",
                              style=nextcord.ButtonStyle.red, row=4, callback=self.__callback_close, args=()))
-
-    def __is_author(self, interaction: nextcord.Interaction, exception_owner=False):
-        user = interaction.user
-        if self.__author.id == user.id or (exception_owner and user.id == self.__bot_instance.owner_id):
-            return True
-        else:
-            return False
 
     async def init(self):
         author = self.__author
@@ -146,13 +140,3 @@ class View(view.View):
             self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
 
         return args
-
-
-class Button(nextcord.ui.Button):
-    def __init__(self, label, style, row, callback, args, disabled=False):
-        self.__callback = callback
-        self.__args = args
-        super().__init__(label=label, style=style, row=row, disabled=disabled)
-
-    async def callback(self, interaction: nextcord.Interaction):
-        await self.__callback(interaction, self.__args)

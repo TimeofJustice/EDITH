@@ -6,6 +6,7 @@ from sys import platform
 import nextcord
 
 from events import view
+from events.view import Button
 
 
 class View(view.View):
@@ -15,8 +16,10 @@ class View(view.View):
 
         super().__init__(author, guild, channel, message, bot_instance, instance_data)
 
-        self.add_item(Button(label="❌ Stop", row=0, args=("stop",),
-                             style=nextcord.ButtonStyle.red, callback=self.__callback_stop))
+        self.__stop_button = Button(label="❌ Stop", row=0, args=("stop",),
+                                    style=nextcord.ButtonStyle.red, callback=self.__callback_stop)
+
+        self.add_item(self.__stop_button)
 
     async def init(self):
         guild = self.__guild
@@ -45,8 +48,7 @@ class View(view.View):
 
             self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
 
-            await asyncio.sleep(5)
-            await self.__message.delete()
+            await self.__message.edit(delete_after=5)
 
             return
         else:
@@ -69,8 +71,7 @@ class View(view.View):
 
                 self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
 
-                await asyncio.sleep(5)
-                await self.__message.delete()
+                await self.__message.edit(delete_after=5)
 
                 return
 
@@ -149,13 +150,14 @@ class View(view.View):
 
             self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
 
-            await asyncio.sleep(10)
-
-            await self.__message.delete()
+            await self.__message.edit(delete_after=10)
 
     async def __callback_stop(self, interaction: nextcord.Interaction, *args):
-        if self.__is_author(interaction):
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+        if self.__is_author(interaction, exception_owner=True):
+            self.__stop_button.label = "❌ Stopping..."
+            await self.__message.edit(view=self)
+
+            await interaction.response.defer()
 
             embed = nextcord.Embed(
                 title="Order-66 stopped!",
@@ -169,14 +171,6 @@ class View(view.View):
             with open('data/pics/order66-4.gif', 'rb') as fp:
                 await self.__message.edit(content="", embed=embed, view=None, file=nextcord.File(fp, 'order66-4.gif'))
 
+            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+
         return args
-
-
-class Button(nextcord.ui.Button):
-    def __init__(self, label, style, row, callback, args, disabled=False):
-        self.__callback = callback
-        self.__args = args
-        super().__init__(label=label, style=style, row=row, disabled=disabled)
-
-    async def callback(self, interaction: nextcord.Interaction):
-        await self.__callback(interaction, self.__args)

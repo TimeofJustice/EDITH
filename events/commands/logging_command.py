@@ -23,6 +23,9 @@ class Command(command.Command):
             category = await guild.create_category(name="E.D.I.T.H Logging")
             messages_channel = await category.create_text_channel(name="messages")
 
+            self.__mysql.insert(table="custom_channels", colms="(id, guild_id)", values=(category.id, guild.id))
+            self.__mysql.insert(table="custom_channels", colms="(id, guild_id)", values=(messages_channel.id, guild.id))
+
             await category.set_permissions(guild.default_role, view_channel=False)
 
             self.__mysql.update(table="settings", value=f"log_category={category.id}",

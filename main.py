@@ -13,9 +13,9 @@ from colorama import Style, Fore
 from nextcord.ext.application_checks import has_permissions, ApplicationMissingPermissions, check, has_role
 
 from events import instance
-from events.commands import calculator as calculator_command, poll as poll_command, \
-    weather as weather_command, purge as purge_command, meme as meme_command, up as up_command, about as about_command, \
-    logging as logging_command, order66 as order66_command, tts as tts_command, profile as profile_command
+from events.commands import calculator_view, order66_view, profile_view, poll_view, tts_view, backup_view, \
+    weather_command, purge_command, meme_command, up_command, about_command, logging_command
+
 from events.listeners import message as message_listener, message_delete as message_delete_listener
 from mysql_bridge import Mysql
 
@@ -93,7 +93,7 @@ class Bot:
                                                     "channel_id BIGINT(255) NOT NULL,"
                                                     "guild_id BIGINT(255) NOT NULL,"
                                                     "type VARCHAR(255) NOT NULL,"
-                                                    "data VARCHAR(255))")
+                                                    "data TEXT)")
 
         mysql.create_table(table="poll_submits", colms="(id VARCHAR(255) primary key,"
                                                        "user_id BIGINT(255) not null,"
@@ -103,6 +103,13 @@ class Bot:
 
         mysql.create_table(table="custom_channels", colms="(id bigint(255) primary key,"
                                                           "guild_id bigint(255) not null)")
+
+        mysql.create_table(table="backups", colms="(id VARCHAR(255) primary key)")
+        mysql.add_colm(table="backups", colm="creator_id", definition="BIGINT(255)", clause="AFTER id")
+        mysql.add_colm(table="backups", colm="guild_id", definition="BIGINT(255)", clause="AFTER creator_id")
+        mysql.add_colm(table="backups", colm="data", definition="TEXT", clause="AFTER creator_id")
+        mysql.add_colm(table="backups", colm="date", definition="datetime",
+                       clause="DEFAULT CURRENT_TIMESTAMP AFTER data")
 
     async def __idle_handler(self):
         status_index = 0
@@ -208,11 +215,12 @@ class Bot:
                                           clause=f"WHERE guild_id={guild.id} and "
                                                  f"(type='order66' or type='tts')")
             views = {
-                "calculator": calculator_command.View,
-                "poll": poll_command.View,
-                "profile": profile_command.View,
-                "order66": order66_command.View,
-                "tts": tts_command.View
+                "calculator": calculator_view.View,
+                "poll": poll_view.View,
+                "profile": profile_view.View,
+                "backup": backup_view.View,
+                "order66": order66_view.View,
+                "tts": tts_view.View
             }
 
             start = datetime.now()
@@ -245,7 +253,7 @@ class Bot:
         async def calculator(
                 interaction: nextcord.Interaction
         ):
-            command = instance.Instance(view_callback=calculator_command.View, bot_instance=self)
+            command = instance.Instance(view_callback=calculator_view.View, bot_instance=self)
             await command.create(interaction, "calculator")
 
         @bot.slash_command(
@@ -261,7 +269,7 @@ class Bot:
                     max_value=4
                 )
         ):
-            await interaction.response.send_modal(poll_command.Modal(number, self, interaction.guild))
+            await interaction.response.send_modal(poll_view.Modal(number, self, interaction.guild))
 
         @bot.slash_command(
             description="That's how the weather outside is, for you caveman!",
@@ -365,7 +373,7 @@ class Bot:
                     required=True
                 )
         ):
-            command = instance.Instance(view_callback=order66_command.View, bot_instance=self)
+            command = instance.Instance(view_callback=order66_view.View, bot_instance=self)
             await command.create(interaction, "order66", data={"target": target.id})
 
         @bot.slash_command(
@@ -379,7 +387,7 @@ class Bot:
                     description="What should I say?"
                 )
         ):
-            command = instance.Instance(view_callback=tts_command.View, bot_instance=self)
+            command = instance.Instance(view_callback=tts_view.View, bot_instance=self)
             await command.create(interaction, "tts", data={"phrase": phrase})
 
         @bot.slash_command(
@@ -397,8 +405,19 @@ class Bot:
             if user is None:
                 user = interaction.user
 
-            command = instance.Instance(view_callback=profile_command.View, bot_instance=self)
+            command = instance.Instance(view_callback=profile_view.View, bot_instance=self)
             await command.create(interaction, "profile", data={"user": user.id})
+
+        @bot.slash_command(
+            description="Opens the backup-terminal!",
+            guild_ids=guild_ids
+        )
+        @has_permissions(administrator=True)
+        async def backup(
+                interaction: nextcord.Interaction
+        ):
+            command = instance.Instance(view_callback=backup_view.View, bot_instance=self)
+            await command.create(interaction, "backup")
 
         @purge.error
         @logging.error
