@@ -1,6 +1,6 @@
 from PIL import Image, ImageDraw, ImageFilter
 
-im1 = Image.open('data/pics/Common.png')
+im1 = Image.open('data/pics/common.png')
 im2 = Image.open('data/pics/a_9bbb4144c63bd05e6e1b3cb229cfbdc9.gif')
 mask_im = Image.open('data/pics/mask.jpg')
 

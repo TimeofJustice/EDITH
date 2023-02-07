@@ -16,7 +16,7 @@ from events import instance
 from events.commands import calculator_view, order66_view, profile_view, poll_view, tts_view, backup_view, \
     weather_command, purge_command, meme_command, up_command, about_command, logging_command
 
-from events.listeners import message as message_listener, message_delete as message_delete_listener
+from events.listeners import on_message_listener, on_raw_message_delete_listener
 from mysql_bridge import Mysql
 
 
@@ -198,12 +198,12 @@ class Bot:
 
         @bot.event
         async def on_message(message: nextcord.Message):
-            listener = message_listener.Listener(self)
+            listener = on_message_listener.Listener(self)
             await listener.call(message)
 
         @bot.event
         async def on_raw_message_delete(payload: nextcord.RawMessageDeleteEvent):
-            listener = message_delete_listener.Listener(self)
+            listener = on_raw_message_delete_listener.Listener(self)
             await listener.call(payload)
 
         @bot.event

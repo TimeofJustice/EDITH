@@ -66,7 +66,7 @@ class View(view.View):
 
         custom_channels = []
         for custom_channel in custom_channel_data:
-            custom_channels.append(custom_channel[0])
+            custom_channels.append(custom_channel["id"])
 
         data = {
             "main": {
