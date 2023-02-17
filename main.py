@@ -16,7 +16,7 @@ from events import instance
 from events.commands import calculator_view, order66_view, profile_view, poll_view, tts_view, backup_view, \
     weather_command, purge_command, meme_command, up_command, about_command, logging_command
 
-from events.listeners import on_message_listener, on_raw_message_delete_listener
+from events.listeners import on_message_listener, on_raw_message_delete_listener, on_voice_state_update_listener
 from mysql_bridge import Mysql
 
 
@@ -110,6 +110,12 @@ class Bot:
         mysql.add_colm(table="backups", colm="data", definition="TEXT", clause="AFTER creator_id")
         mysql.add_colm(table="backups", colm="date", definition="datetime",
                        clause="DEFAULT CURRENT_TIMESTAMP AFTER data")
+
+        mysql.create_table(table="scm_rooms", colms="(id bigint(255) primary key,"
+                                                    "guild_id bigint(255) not null,"
+                                                    "channels TEXT not null,"
+                                                    "owner_id bigint(255) not null,"
+                                                    "permanent tinyint(1) default 0)")
 
     async def __idle_handler(self):
         status_index = 0
@@ -205,6 +211,15 @@ class Bot:
         async def on_raw_message_delete(payload: nextcord.RawMessageDeleteEvent):
             listener = on_raw_message_delete_listener.Listener(self)
             await listener.call(payload)
+
+        @bot.event
+        async def on_voice_state_update(
+                member: nextcord.Member,
+                before: nextcord.VoiceState,
+                after: nextcord.VoiceState
+        ):
+            listener = on_voice_state_update_listener.Listener(self)
+            await listener.call(member, before, after)
 
         @bot.event
         async def on_guild_available(guild):
