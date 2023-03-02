@@ -14,7 +14,8 @@ from nextcord.ext.application_checks import has_permissions, ApplicationMissingP
 
 from events import instance
 from events.commands import calculator_view, order66_view, profile_view, poll_view, tts_view, backup_view, \
-    weather_command, purge_command, meme_command, up_command, about_command, logging_command
+    weather_command, purge_command, meme_command, up_command, about_command, logging_command, scm_command, movie_view
+from events.commands.scm_views import queue_view, config_view
 
 from events.listeners import on_message_listener, on_raw_message_delete_listener, on_voice_state_update_listener
 from mysql_bridge import Mysql
@@ -116,6 +117,27 @@ class Bot:
                                                     "channels TEXT not null,"
                                                     "owner_id bigint(255) not null,"
                                                     "permanent tinyint(1) default 0)")
+        mysql.add_colm(table="scm_rooms", colm="message_id", definition="bigint(255)", clause="AFTER owner_id")
+
+        mysql.create_table(table="scm_roles", colms="(id bigint(255) primary key,"
+                                                    "guild_id bigint(255) not null,"
+                                                    "emoji varchar(255) not null)")
+
+        mysql.create_table(table="scm_users", colms="(user_id bigint(255) not null,"
+                                                    "category_id bigint(255) not null,"
+                                                    "guild_id bigint(255) not null,"
+                                                    "status int(255) not null,"
+                                                    "primary key (user_id, category_id))")
+
+        mysql.create_table(table="scm_room_roles", colms="(role_id bigint(255) not null,"
+                                                         "category_id bigint(255) not null,"
+                                                         "guild_id bigint(255) not null,"
+                                                         "primary key (role_id, category_id))")
+
+        mysql.create_table(table="movie_guessing", colms="(id bigint(255) auto_increment primary key,"
+                                                         "user_id bigint(255) not null,"
+                                                         "movie_id varchar(255) not null,"
+                                                         "clues int(255) not null)")
 
     async def __idle_handler(self):
         status_index = 0
@@ -235,7 +257,10 @@ class Bot:
                 "profile": profile_view.View,
                 "backup": backup_view.View,
                 "order66": order66_view.View,
-                "tts": tts_view.View
+                "tts": tts_view.View,
+                "queue": queue_view.View,
+                "config": config_view.View,
+                "movie": movie_view.View
             }
 
             start = datetime.now()
@@ -433,6 +458,45 @@ class Bot:
         ):
             command = instance.Instance(view_callback=backup_view.View, bot_instance=self)
             await command.create(interaction, "backup")
+
+        @bot.slash_command(
+            description="Opens a movie guessing game!",
+            guild_ids=guild_ids
+        )
+        async def movle(
+                interaction: nextcord.Interaction
+        ):
+            command = instance.Instance(view_callback=movie_view.View, bot_instance=self)
+            await command.create(interaction, "movie")
+
+        @bot.slash_command(
+            guild_ids=guild_ids
+        )
+        async def scm(
+                interaction: nextcord.Interaction
+        ):
+            pass
+
+        @scm.subcommand(
+            description="Adds or removes a role to the S.C.M-System!"
+        )
+        @has_permissions(administrator=True)
+        async def role(
+                interaction: nextcord.Interaction,
+                method: str = nextcord.SlashOption(
+                    name="method",
+                    description="Do you want to add or remove a role?",
+                    choices={"add": "add", "remove": "remove"},
+                    required=True
+                ),
+                role: nextcord.Role = nextcord.SlashOption(
+                    name="role",
+                    description="Which role do you want to add or remove?",
+                    required=True
+                )
+        ):
+            command = scm_command.Command(interaction, self, {"command": "role", "method": method, "role": role})
+            await command.run()
 
         @purge.error
         @logging.error

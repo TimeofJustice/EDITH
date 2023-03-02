@@ -8,25 +8,44 @@ class Instance:
     def __init__(self, view_callback, bot_instance):
         self.__view_callback = view_callback
         self.__bot_instance = bot_instance
+        self.__message = None
 
     async def create(self, user_interaction: nextcord.Interaction, title, data=None, ephemeral=False):
         guild = user_interaction.guild
         channel = user_interaction.channel
-        message = None
         author = user_interaction.user
 
         if data is None:
             data = {}
 
         await user_interaction.send("Loading...", ephemeral=ephemeral)
-        message = await user_interaction.original_message()
+        self.__message = await user_interaction.original_message()
 
         mysql = Mysql()
         mysql.insert(table="instances", colms="(message_id, author_id, channel_id, guild_id, type, data)",
-                     values=(message.id, author.id, channel.id, guild.id, title,
+                     values=(self.__message.id, author.id, channel.id, guild.id, title,
                              json.dumps(data, ensure_ascii=False)))
 
-        message_view = self.__view_callback(author, guild, channel, message, self.__bot_instance, data)
+        message_view = self.__view_callback(author, guild, channel, self.__message, self.__bot_instance, data)
+        await message_view.init()
+
+    async def create_manual(self, text_channel: nextcord.TextChannel, author: nextcord.Member,
+                            title, data=None):
+        guild = text_channel.guild
+        channel = text_channel
+        author = author
+
+        if data is None:
+            data = {}
+
+        self.__message = await channel.send("Loading...")
+
+        mysql = Mysql()
+        mysql.insert(table="instances", colms="(message_id, author_id, channel_id, guild_id, type, data)",
+                     values=(self.__message.id, author.id, channel.id, guild.id, title,
+                             json.dumps(data, ensure_ascii=False)))
+
+        message_view = self.__view_callback(author, guild, channel, self.__message, self.__bot_instance, data)
         await message_view.init()
 
     async def initiate(self, instance_data):
@@ -40,3 +59,6 @@ class Instance:
         message_view = self.__view_callback(author, guild, channel, message, self.__bot_instance, data)
         await message.edit(view=message_view)
         await message_view.init()
+
+    def get_message_id(self):
+        return self.__message.id
