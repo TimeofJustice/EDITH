@@ -27,6 +27,12 @@ class View(nextcord.ui.View):
         for key in self.__instance_data.keys():
             self.__instance_data[key] = self.__instance_data[key].replace("'", "\"")
 
+    async def on_error(self, error, item, interaction) -> None:
+        if type(error) is nextcord.errors.NotFound:
+            pass
+        else:
+            await super().on_error(error, item, interaction)
+
     async def on_timeout(self) -> None:
         self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
         await self.__message.delete()

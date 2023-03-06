@@ -119,7 +119,7 @@ class View(view.View):
 
             if platform == "win32":
                 player = nextcord.FFmpegPCMAudio("data/mp3/{}_tts.mp3".format(guild.id),
-                                                 executable="drivers/ffmpeg.exe", options="-loglevel panic")
+                                                 executable="data/drivers/ffmpeg.exe", options="-loglevel panic")
             else:
                 player = nextcord.FFmpegPCMAudio("data/mp3/{}_tts.mp3".format(guild.id), options="-loglevel panic")
             voice_client.play(player)
@@ -127,16 +127,19 @@ class View(view.View):
             session = self.__mysql.select(table="instances", colms="*",
                                           clause=f"WHERE message_id={self.__message.id}")
 
-            while voice_client.is_playing() and len(session) != 0:
-                session = self.__mysql.select(table="instances", colms="*",
-                                              clause=f"WHERE message_id={self.__message.id}")
-                await asyncio.sleep(.5)
+            asyncio.create_task(self.__check_playing(voice_client, session))
 
-            await voice_client.disconnect()
+    async def __check_playing(self, voice_client, session):
+        while voice_client.is_playing() and len(session) != 0:
+            session = self.__mysql.select(table="instances", colms="*",
+                                          clause=f"WHERE message_id={self.__message.id}")
+            await asyncio.sleep(.5)
 
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+        await voice_client.disconnect()
 
-            await self.__message.delete()
+        self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+
+        await self.__message.delete()
 
     async def __callback_stop(self, interaction: nextcord.Interaction, args):
         if self.__is_author(interaction, exception_owner=True):

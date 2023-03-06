@@ -1,3 +1,4 @@
+import asyncio
 from difflib import SequenceMatcher
 
 from PIL import Image, ImageDraw, ImageFilter
@@ -29,4 +30,9 @@ def equals_title(input):
           f"Title (German): {title_ger}\n")
 
 
-equals_title(input("Title:\n"))
+# equals_title(input("Title:\n"))
+
+def similar(a, b):
+    return SequenceMatcher(None, a.lower().replace(" ", ""), b.lower().replace(" ", "")).ratio()
+
+print(similar("E.T. – Der Außerirdische", "Planet der Affen"))

@@ -1,0 +1,1334 @@
+{
+  "level_15": {
+    "title_short": "Scary Movie",
+    "title_full": "Scary Movie",
+    "cover": "data/pics/movies/covers/level_15.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "y8edZEA8"
+  },
+  "level_16": {
+    "title_short": "Ted",
+    "title_full": "Ted",
+    "cover": "data/pics/movies/covers/level_16.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "MuZhWlLF"
+  },
+  "level_17": {
+    "title_short": "The Ring",
+    "title_full": "The Ring",
+    "cover": "data/pics/movies/covers/level_17.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "3jTqYb1F"
+  },
+  "level_18": {
+    "title_short": "Titanic",
+    "title_full": "Titanic",
+    "cover": "data/pics/movies/covers/level_18.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "sez33bvZ"
+  },
+  "level_19": {
+    "title_short": "The Godfather",
+    "title_full": "The Godfather",
+    "cover": "data/pics/movies/covers/level_19.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "lwQFpeDV"
+  },
+  "level_20": {
+    "title_short": "The Matrix",
+    "title_full": "The Matrix",
+    "cover": "data/pics/movies/covers/level_20.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "7I759d0j"
+  },
+  "level_21": {
+    "title_short": "Star Wars: Episode IV",
+    "title_full": "Star Wars: Episode IV – A New Hope",
+    "cover": "data/pics/movies/covers/level_21.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "bwYfSLUC"
+  },
+  "level_22": {
+    "title_short": "Interstellar",
+    "title_full": "Interstellar",
+    "cover": "data/pics/movies/covers/level_22.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "RvAv7XG8"
+  },
+  "level_23": {
+    "title_short": "The Lion King",
+    "title_full": "The Lion King",
+    "cover": "data/pics/movies/covers/level_23.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "ej0lT5hl"
+  },
+  "level_24": {
+    "title_short": "Intouchables",
+    "title_full": "Intouchables",
+    "cover": "data/pics/movies/covers/level_24.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "x4rP9NCq"
+  },
+  "level_25": {
+    "title_short": "Django Unchained",
+    "title_full": "Django Unchained",
+    "cover": "data/pics/movies/covers/level_25.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "GxAtoPFI"
+  },
+  "level_26": {
+    "title_short": "Raiders of the Lost Ark",
+    "title_full": "Raiders of the Lost Ark",
+    "cover": "data/pics/movies/covers/level_26.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "xE9H7BeC"
+  },
+  "level_27": {
+    "title_short": "WALL·E",
+    "title_full": "WALL·E",
+    "cover": "data/pics/movies/covers/level_27.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "34gnVuQn"
+  },
+  "level_28": {
+    "title_short": "The Shining",
+    "title_full": "The Shining",
+    "cover": "data/pics/movies/covers/level_28.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "sFLZKhpK"
+  },
+  "level_29": {
+    "title_short": "Avengers: Infinity War",
+    "title_full": "Avengers: Infinity War",
+    "cover": "data/pics/movies/covers/level_29.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "TdzNX0il"
+  },
+  "level_30": {
+    "title_short": "Alien",
+    "title_full": "Alien",
+    "cover": "data/pics/movies/covers/level_30.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "aLnD3Ols"
+  },
+  "level_31": {
+    "title_short": "Toy Story",
+    "title_full": "Toy Story",
+    "cover": "data/pics/movies/covers/level_31.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "vtNY2BsB"
+  },
+  "level_32": {
+    "title_short": "Joker",
+    "title_full": "Joker",
+    "cover": "data/pics/movies/covers/level_32.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "WzeQxlih"
+  },
+  "level_33": {
+    "title_short": "Top Gun 2",
+    "title_full": "Top Gun: Maverick",
+    "cover": "data/pics/movies/covers/level_33.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "Dv4EcXHA"
+  },
+  "level_34": {
+    "title_short": "Up",
+    "title_full": "Up",
+    "cover": "data/pics/movies/covers/level_34.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "eI6wrT99"
+  },
+  "level_35": {
+    "title_short": "Die Hard",
+    "title_full": "Die Hard",
+    "cover": "data/pics/movies/covers/level_35.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "ON955wzn"
+  },
+  "level_36": {
+    "title_short": "The Wolf of Wall Street",
+    "title_full": "The Wolf of Wall Street",
+    "cover": "data/pics/movies/covers/level_36.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "EBSFp6Y2"
+  },
+  "level_37": {
+    "title_short": "Shutter Island",
+    "title_full": "Shutter Island",
+    "cover": "data/pics/movies/covers/level_37.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "nqdjUS0w"
+  },
+  "level_38": {
+    "title_short": "Jurassic Park",
+    "title_full": "Jurassic Park",
+    "cover": "data/pics/movies/covers/level_38.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "TdHgcy1S"
+  },
+  "level_39": {
+    "title_short": "Monty Python and the Holy Grail",
+    "title_full": "Monty Python and the Holy Grail",
+    "cover": "data/pics/movies/covers/level_39.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "K7LHMjhF"
+  },
+  "level_40": {
+    "title_short": "Spider-Man 3",
+    "title_full": "Spider-Man: No Way Home",
+    "cover": "data/pics/movies/covers/level_40.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "uKCbaaWo"
+  },
+  "level_41": {
+    "title_short": "Finding Nemo",
+    "title_full": "Finding Nemo",
+    "cover": "data/pics/movies/covers/level_41.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "n6iJDjYZ"
+  },
+  "level_42": {
+    "title_short": "My Neighbor Totoro",
+    "title_full": "My Neighbor Totoro",
+    "cover": "data/pics/movies/covers/level_42.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "HziXitKG"
+  },
+  "level_43": {
+    "title_short": "Blade Runner",
+    "title_full": "Blade Runner",
+    "cover": "data/pics/movies/covers/level_43.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "7dXCfUff"
+  },
+  "level_44": {
+    "title_short": "Harry Potter 1",
+    "title_full": "Harry Potter and the Philosopher's Stone",
+    "cover": "data/pics/movies/covers/level_44.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "zTSihOUJ"
+  },
+  "level_45": {
+    "title_short": "How to Train Your Dragon",
+    "title_full": "How to Train Your Dragon",
+    "cover": "data/pics/movies/covers/level_45.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "UhY2RJFU"
+  },
+  "level_46": {
+    "title_short": "Monsters, Inc.",
+    "title_full": "Monsters, Inc.",
+    "cover": "data/pics/movies/covers/level_46.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "KWljQPuE"
+  },
+  "level_47": {
+    "title_short": "Jaws",
+    "title_full": "Jaws",
+    "cover": "data/pics/movies/covers/level_47.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "dihUGY9q"
+  },
+  "level_48": {
+    "title_short": "Rocky",
+    "title_full": "Rocky",
+    "cover": "data/pics/movies/covers/level_48.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "hTRdNznO"
+  },
+  "level_49": {
+    "title_short": "The Terminator",
+    "title_full": "The Terminator",
+    "cover": "data/pics/movies/covers/level_49.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "H6QEX9lE"
+  },
+  "level_50": {
+    "title_short": "Logan",
+    "title_full": "Logan",
+    "cover": "data/pics/movies/covers/level_50.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "QpOQdEjW"
+  },
+  "level_51": {
+    "title_short": "The Exorcist",
+    "title_full": "The Exorcist",
+    "cover": "data/pics/movies/covers/level_51.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "m8Ya15gK"
+  },
+  "level_52": {
+    "title_short": "The Incredibles",
+    "title_full": "The Incredibles",
+    "cover": "data/pics/movies/covers/level_52.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "rBamvBzJ"
+  },
+  "level_53": {
+    "title_short": "Pirates of the Caribbean 2",
+    "title_full": "Pirates of the Caribbean: Dead Man's Chest",
+    "cover": "data/pics/movies/covers/level_53.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "DH3GhGu1"
+  },
+  "level_54": {
+    "title_short": "The Whale",
+    "title_full": "The Whale",
+    "cover": "data/pics/movies/covers/level_54.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "UArpAZGS"
+  },
+  "level_55": {
+    "title_short": "The Dark Knight",
+    "title_full": "The Dark Knight",
+    "cover": "data/pics/movies/covers/level_55.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "spqc9wM9"
+  },
+  "level_56": {
+    "title_short": "Pulp Fiction",
+    "title_full": "Pulp Fiction",
+    "cover": "data/pics/movies/covers/level_56.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "GvvAwyEI"
+  },
+  "level_57": {
+    "title_short": "Psycho",
+    "title_full": "Psycho",
+    "cover": "data/pics/movies/covers/level_57.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "QV5YSreu"
+  },
+  "level_58": {
+    "title_short": "Mad Max",
+    "title_full": "Mad Max: Fury Road",
+    "cover": "data/pics/movies/covers/level_58.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "TuOBNp8w"
+  },
+  "level_59": {
+    "title_short": "Blair Witch",
+    "title_full": "The Blair Witch Project",
+    "cover": "data/pics/movies/covers/level_59.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "rL6usmKd"
+  },
+  "level_60": {
+    "title_short": "The Texas Chain Saw Massacre",
+    "title_full": "The Texas Chain Saw Massacre",
+    "cover": "data/pics/movies/covers/level_60.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "fB9vit40"
+  },
+  "level_61": {
+    "title_short": "Get Out",
+    "title_full": "Get Out",
+    "cover": "data/pics/movies/covers/level_61.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "Vg6dnFhn"
+  },
+  "level_62": {
+    "title_short": "Halloween",
+    "title_full": "Halloween",
+    "cover": "data/pics/movies/covers/level_62.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "3X0kkOlS"
+  },
+  "level_63": {
+    "title_short": "Shrek",
+    "title_full": "Shrek",
+    "cover": "data/pics/movies/covers/level_63.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "6i8dXoAx"
+  },
+  "level_64": {
+    "title_short": "Frankenstein",
+    "title_full": "Frankenstein",
+    "cover": "data/pics/movies/covers/level_64.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "nGPPqfn2"
+  },
+  "level_65": {
+    "title_short": "Predator",
+    "title_full": "Predator",
+    "cover": "data/pics/movies/covers/level_65.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "DrPOlgVx"
+  },
+  "level_66": {
+    "title_short": "The Shawshank Redemption",
+    "title_full": "The Shawshank Redemption",
+    "cover": "data/pics/movies/covers/level_66.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "0LAmC7ll"
+  },
+  "level_67": {
+    "title_short": "Poltergeist",
+    "title_full": "Poltergeist",
+    "cover": "data/pics/movies/covers/level_67.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "fNh9nBWf"
+  },
+  "level_68": {
+    "title_short": "First Blood",
+    "title_full": "First Blood",
+    "cover": "data/pics/movies/covers/level_68.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "5Nfky1R2"
+  },
+  "level_69": {
+    "title_short": "Scream",
+    "title_full": "Scream",
+    "cover": "data/pics/movies/covers/level_69.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "yPHLzyOd"
+  },
+  "level_70": {
+    "title_short": "The Silence of the Lambs",
+    "title_full": "The Silence of the Lambs",
+    "cover": "data/pics/movies/covers/level_70.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "SrtiSziO"
+  },
+  "level_71": {
+    "title_short": "Fight Club",
+    "title_full": "Fight Club",
+    "cover": "data/pics/movies/covers/level_71.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "hEcfjrrN"
+  },
+  "level_72": {
+    "title_short": "Groundhog Day",
+    "title_full": "Groundhog Day",
+    "cover": "data/pics/movies/covers/level_72.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "gxn88wtT"
+  },
+  "level_73": {
+    "title_short": "The Revenant",
+    "title_full": "The Revenant",
+    "cover": "data/pics/movies/covers/level_73.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "Ti5lUYHw"
+  },
+  "level_74": {
+    "title_short": "American Psycho",
+    "title_full": "American Psycho",
+    "cover": "data/pics/movies/covers/level_74.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "vse6e2Fa"
+  },
+  "level_75": {
+    "title_short": "Dawn of the Dead",
+    "title_full": "Dawn of the Dead",
+    "cover": "data/pics/movies/covers/level_75.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "K6gAOsZE"
+  },
+  "level_76": {
+    "title_short": "Transformers",
+    "title_full": "Transformers",
+    "cover": "data/pics/movies/covers/level_76.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "r5o8oMGv"
+  },
+  "level_77": {
+    "title_short": "From Hell",
+    "title_full": "From Hell",
+    "cover": "data/pics/movies/covers/level_77.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "69STQknP"
+  },
+  "level_78": {
+    "title_short": "Super 8",
+    "title_full": "Super 8",
+    "cover": "data/pics/movies/covers/level_78.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "4nfLH28q"
+  },
+  "level_79": {
+    "title_short": "Kingsman 1",
+    "title_full": "Kingsman: The Secret Service",
+    "cover": "data/pics/movies/covers/level_79.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "nR7mdQwj"
+  },
+  "level_80": {
+    "title_short": "The Autopsy of Jane Doe",
+    "title_full": "The Autopsy of Jane Doe",
+    "cover": "data/pics/movies/covers/level_80.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "FPBWSFHu"
+  },
+  "level_81": {
+    "title_short": "Inglourious Basterds",
+    "title_full": "Inglourious Basterds",
+    "cover": "data/pics/movies/covers/level_81.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "SP8TFsAo"
+  },
+  "level_82": {
+    "title_short": "John Wick",
+    "title_full": "John Wick",
+    "cover": "data/pics/movies/covers/level_82.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "8abaDzUw"
+  },
+  "level_83": {
+    "title_short": "Pinocchio",
+    "title_full": "Pinocchio",
+    "cover": "data/pics/movies/covers/level_83.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "plBzjLjb"
+  },
+  "level_84": {
+    "title_short": "Schindler's List",
+    "title_full": "Schindler's List",
+    "cover": "data/pics/movies/covers/level_84.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "KbVYAl2d"
+  },
+  "level_85": {
+    "title_short": "Pan's Labyrinth",
+    "title_full": "Pan's Labyrinth",
+    "cover": "data/pics/movies/covers/level_85.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "JbLML1Wg"
+  },
+  "level_86": {
+    "title_short": "The NeverEnding Story",
+    "title_full": "Die unendliche Geschichte, The NeverEnding Story",
+    "cover": "data/pics/movies/covers/level_86.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "fVq4r9ED"
+  },
+  "level_87": {
+    "title_short": "12 Years a Slave",
+    "title_full": "12 Years a Slave",
+    "cover": "data/pics/movies/covers/level_87.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "r2hlcDG9"
+  },
+  "level_88": {
+    "title_short": "Iron Man",
+    "title_full": "Iron Man",
+    "cover": "data/pics/movies/covers/level_88.png",
+    "clue_one": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_two": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "clue_three": {
+      "type": "text",
+      "description": "Example Clue"
+    },
+    "id": "3pKmRux0"
+  }
+}

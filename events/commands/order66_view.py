@@ -109,48 +109,51 @@ class View(view.View):
                 player = nextcord.FFmpegPCMAudio(source='data/mp3/Execute_Order_66.mp3', options="-loglevel panic")
             voice_client.play(player)
 
-            while voice_client.is_playing():
-                await asyncio.sleep(.5)
+            asyncio.create_task(self.__check_playing(voice_client, guild, target, start_channel))
+
+    async def __check_playing(self, voice_client, guild, target, start_channel):
+        while voice_client.is_playing():
+            await asyncio.sleep(.5)
 
             await voice_client.disconnect()
 
-            channels = []
-            custom_channel_data = self.__mysql.select("custom_channels", colms="id",
-                                                      clause=" WHERE guild_id={}".format(guild.id))
+        channels = []
+        custom_channel_data = self.__mysql.select("custom_channels", colms="id",
+                                                  clause=" WHERE guild_id={}".format(guild.id))
 
-            custom_channels = []
-            for custom_channel in custom_channel_data:
-                custom_channels.append(custom_channel[0])
+        custom_channels = []
+        for custom_channel in custom_channel_data:
+            custom_channels.append(custom_channel["id"])
 
-            for channel in guild.voice_channels:
-                if channel.permissions_for(target) and channel.permissions_for(target).connect and \
-                        channel.id not in custom_channels and channel != guild.afk_channel and \
-                        channel != start_channel:
-                    channels.append(channel)
+        for channel in guild.voice_channels:
+            if channel.permissions_for(target) and channel.permissions_for(target).connect and \
+                    channel.id not in custom_channels and channel != guild.afk_channel and \
+                    channel != start_channel:
+                channels.append(channel)
 
-            next_channel = random.choice(channels)
+        next_channel = random.choice(channels)
+        session = self.__mysql.select(table="instances", colms="*",
+                                      clause=f"WHERE message_id={self.__message.id}")
+
+        while target.voice is not None and len(session) != 0:
             session = self.__mysql.select(table="instances", colms="*",
                                           clause=f"WHERE message_id={self.__message.id}")
 
-            while target.voice is not None and len(session) != 0:
-                session = self.__mysql.select(table="instances", colms="*",
-                                              clause=f"WHERE message_id={self.__message.id}")
+            if next_channel not in channels:
+                channels.append(next_channel)
 
-                if next_channel not in channels:
-                    channels.append(next_channel)
+            next_channel = random.choice(channels)
 
-                next_channel = random.choice(channels)
+            await target.move_to(next_channel)
+            channels.remove(next_channel)
+            await asyncio.sleep(1.5)
 
-                await target.move_to(next_channel)
-                channels.remove(next_channel)
-                await asyncio.sleep(1.5)
+        if target.voice is not None:
+            await target.move_to(start_channel)
 
-            if target.voice is not None:
-                await target.move_to(start_channel)
+        self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
 
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
-
-            await self.__message.edit(delete_after=10)
+        await self.__message.edit(delete_after=10)
 
     async def __callback_stop(self, interaction: nextcord.Interaction, *args):
         if self.__is_author(interaction, exception_owner=True):

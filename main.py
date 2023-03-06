@@ -1,8 +1,5 @@
-import _thread
 import asyncio
 import configparser
-import math
-import threading
 from datetime import datetime
 import os
 from pathlib import Path
@@ -139,28 +136,6 @@ class Bot:
                                                          "movie_id varchar(255) not null,"
                                                          "clues int(255) not null)")
 
-    async def __idle_handler(self):
-        status_index = 0
-
-        while True:
-            status = ["Even Dead I Am The Hero", "v." + str(self.get_version()),
-                      "Dev: TimeofJustice", "Running since: " + self.get_running_time()]
-            try:
-                await self.__bot.change_presence(activity=nextcord.Game(name=status[status_index]))
-            except Exception as e:
-                print(f"Exception in 'idle_handler':\n{e}")
-            status_index += 1
-            if status_index == len(status):
-                status_index = 0
-            await asyncio.sleep(60)
-
-    def __init_threads(self):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
-        loop.run_until_complete(self.__idle_handler())
-        loop.close()
-
     async def __initiate_instances(self, sessions, views):
         mysql = self.__mysql
 
@@ -171,25 +146,35 @@ class Bot:
                 await bot_client.disconnect(force=True)
 
         start = datetime.now()
+
+        methods = []
+
         for session in sessions:
-            try:
-                command = instance.Instance(view_callback=views[session["type"]], bot_instance=self)
-                await command.initiate(session)
-            except Exception as e:
-                print(f"In '__initiate_instances' ({session['message_id']}):\n{e}")
-                mysql.delete(table="poll_submits", clause=f"WHERE poll_id={session['message_id']}")
-                mysql.delete(table="instances", clause=f"WHERE message_id={session['message_id']}")
+            methods.append(self.__reinit_session(session, views, mysql))
 
-                try:
-                    guild = self.__bot.get_guild(session["guild_id"])
-                    channel = guild.get_channel(session["channel_id"])
-                    message = await channel.fetch_message(session["message_id"])
-
-                    await message.delete()
-                except Exception as e:
-                    print(e)
+        await asyncio.gather(
+            *methods
+        )
 
         return len(sessions)
+
+    async def __reinit_session(self, session, views, mysql):
+        try:
+            command = instance.Instance(view_callback=views[session["type"]], bot_instance=self)
+            await command.initiate(session)
+        except Exception as e:
+            print(f"In '__initiate_instances' ({session['message_id']}):\n{e}")
+            mysql.delete(table="poll_submits", clause=f"WHERE poll_id={session['message_id']}")
+            mysql.delete(table="instances", clause=f"WHERE message_id={session['message_id']}")
+
+            try:
+                guild = self.__bot.get_guild(session["guild_id"])
+                channel = guild.get_channel(session["channel_id"])
+                message = await channel.fetch_message(session["message_id"])
+
+                await message.delete()
+            except Exception as e:
+                print(e)
 
     def __init_events(self):
         bot = self.__bot
@@ -220,7 +205,19 @@ class Bot:
 
                 self.__is_already_running = True
 
-                _thread.start_new_thread(self.__init_threads, ())
+                status_index = 0
+
+                while True:
+                    status = ["Even Dead I Am The Hero", "v." + str(self.get_version()),
+                              "Dev: TimeofJustice", "Running since: " + self.get_running_time()]
+                    try:
+                        await self.__bot.change_presence(activity=nextcord.Game(name=status[status_index]))
+                    except Exception as e:
+                        print(f"Exception in 'idle_handler':\n{e}")
+                    status_index += 1
+                    if status_index == len(status):
+                        status_index = 0
+                    await asyncio.sleep(60)
             else:
                 print("(BOT) Reconnected")
 
@@ -245,12 +242,8 @@ class Bot:
 
         @bot.event
         async def on_guild_available(guild):
-            message_sessions = mysql.select(table="instances", colms="*",
-                                            clause=f"WHERE guild_id={guild.id} and "
-                                                   f"(type!='order66' and type!='tts')")
-            voice_sessions = mysql.select(table="instances", colms="*",
-                                          clause=f"WHERE guild_id={guild.id} and "
-                                                 f"(type='order66' or type='tts')")
+            sessions = mysql.select(table="instances", colms="*",
+                                    clause=f"WHERE guild_id={guild.id}")
             views = {
                 "calculator": calculator_view.View,
                 "poll": poll_view.View,
@@ -264,10 +257,10 @@ class Bot:
             }
 
             start = datetime.now()
-            message_sessions_len = await self.__initiate_instances(message_sessions, views)
-            voice_sessions_len = await self.__initiate_instances(voice_sessions, views)
 
-            print(f"{Fore.GREEN}Es wurden {message_sessions_len + voice_sessions_len} Instanzen für {guild} in "
+            sessions_len = await self.__initiate_instances(sessions, views)
+
+            print(f"{Fore.GREEN}Es wurden {sessions_len} Instanzen für {guild} in "
                   f"{(datetime.now() - start).seconds}s geladen.{Style.RESET_ALL}")
 
     def __init_commands(self):
@@ -525,6 +518,8 @@ class Bot:
 
                 with open('data/pics/unknown_error.gif', 'rb') as fp:
                     await error.send(embed=embed, ephemeral=True, file=nextcord.File(fp, 'unknown_error.gif'))
+
+                print(ctx)
 
 
 client = Bot()

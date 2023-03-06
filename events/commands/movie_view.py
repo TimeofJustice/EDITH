@@ -35,7 +35,7 @@ class View(view.View):
         self.__clue_three = Button(label="Clue 3", row=0, args=("three",),
                                    style=nextcord.ButtonStyle.grey, callback=self.__callback_clue_three)
 
-        self.__clue_reveal = Button(label="Reveal", row=0, args=("reveal",),
+        self.__clue_reveal = Button(label="Reveal Clue", row=0, args=("reveal",),
                                     style=nextcord.ButtonStyle.blurple, callback=self.__callback_reveal)
 
         self.__clue_guess = Button(label="Guess", row=0, args=("guess",),
@@ -101,10 +101,11 @@ class View(view.View):
                   f"While guessing you have to enter the movie titel. "
                   f"After entering a title you will receive an hint how close you are.\n\n"
                   f"There are three levels:\n"
-                  f"**Not even close** means your title is **less** then **40%** accurate.\n"
-                  f"**You are close** means your title is **less** then **80%** accurate.\n"
-                  f"**You guessed it** means your title is **more** than **80%** accurate.\n\n"
-                  f"All titles are in english. You have two possible titles the short-title and the full-title.\n"
+                  f"**Not even close** means your title is **less** then **60%** accurate.\n"
+                  f"**You are close** means your title is **less** then **90%** accurate.\n"
+                  f"**You guessed it** means your title is **more** than **90%** accurate.\n\n"
+                  f"You can enter the **english** or the **german** title. "
+                  f"You have two possible titles the short-title and the full-title.\n"
                   f"For example:\n"
                   f"- Pirates of the Caribbean\n"
                   f"- Pirates of the Caribbean: The Curse of the Black Pearl\n"
@@ -180,13 +181,18 @@ class View(view.View):
             )
 
             embed.set_author(name="Movle (A movie guessing game)")
-            embed.set_footer(text="ㅤ" * 40)
+            embed.set_footer(text=f"(ID: {self.__level['id']})" + "ㅤ" * 26)
 
             if self.__level["clue_one"]["type"] == "image":
                 embed.set_image(url="attachment://cover.png")
 
                 with open(self.__level["clue_one"]["file_path"], 'rb') as fp:
                     file = nextcord.File(fp, 'cover.png')
+
+                await self.__message.edit(content="", embed=embed, view=self, file=file)
+            elif self.__level["clue_one"]["type"] == "audio":
+                with open(self.__level["clue_one"]["file_path"], 'rb') as fp:
+                    file = nextcord.File(fp, 'audio.mp3')
 
                 await self.__message.edit(content="", embed=embed, view=self, file=file)
             else:
@@ -218,13 +224,18 @@ class View(view.View):
             )
 
             embed.set_author(name="Movle (A movie guessing game)")
-            embed.set_footer(text="ㅤ" * 40)
+            embed.set_footer(text=f"(ID: {self.__level['id']})" + "ㅤ" * 26)
 
             if self.__level["clue_two"]["type"] == "image":
                 embed.set_image(url="attachment://cover.png")
 
                 with open(self.__level["clue_two"]["file_path"], 'rb') as fp:
                     file = nextcord.File(fp, 'cover.png')
+
+                await self.__message.edit(content="", embed=embed, view=self, file=file)
+            elif self.__level["clue_two"]["type"] == "audio":
+                with open(self.__level["clue_two"]["file_path"], 'rb') as fp:
+                    file = nextcord.File(fp, 'audio.mp3')
 
                 await self.__message.edit(content="", embed=embed, view=self, file=file)
             else:
@@ -256,13 +267,18 @@ class View(view.View):
             )
 
             embed.set_author(name="Movle (A movie guessing game)")
-            embed.set_footer(text="ㅤ" * 40)
+            embed.set_footer(text=f"(ID: {self.__level['id']})" + "ㅤ" * 26)
 
             if self.__level["clue_three"]["type"] == "image":
                 embed.set_image(url="attachment://cover.png")
 
                 with open(self.__level["clue_three"]["file_path"], 'rb') as fp:
                     file = nextcord.File(fp, 'cover.png')
+
+                await self.__message.edit(content="", embed=embed, view=self, file=file)
+            elif self.__level["clue_three"]["type"] == "audio":
+                with open(self.__level["clue_three"]["file_path"], 'rb') as fp:
+                    file = nextcord.File(fp, 'audio.mp3')
 
                 await self.__message.edit(content="", embed=embed, view=self, file=file)
             else:
@@ -311,13 +327,18 @@ class View(view.View):
         return SequenceMatcher(None, a.lower(), b.lower()).ratio()
 
     async def send_guess(self, title, interaction: nextcord.Interaction):
-        perc_short = self.similar(title, self.__level["title_short"])
-        perc_full = self.similar(title, self.__level["title_full"])
+        percs = []
 
-        perc = max(perc_full, perc_short)
+        for short_title in self.__level["title_short"]:
+            percs.append(self.similar(title, short_title))
 
-        if perc < 0.8:
-            if perc < 0.4:
+        for full_title in self.__level["title_full"]:
+            percs.append(self.similar(title, full_title))
+
+        perc = max(percs)
+
+        if perc < 0.9:
+            if perc < 0.6:
                 status = "Not even close"
             else:
                 status = "You are close"
@@ -343,7 +364,7 @@ class View(view.View):
 
         embed = nextcord.Embed(
             title="You guessed it!",
-            description=f"The movie was indeed **{self.__level['title_full']}**\n",
+            description=f"The movie was indeed **{self.__level['title_full'][0]}**\n",
             colour=self.__color
         )
 
@@ -353,7 +374,7 @@ class View(view.View):
             file = nextcord.File(fp, 'cover.png')
 
         embed.set_author(name="Movle (A movie guessing game)")
-        embed.set_footer(text="ㅤ" * 40)
+        embed.set_footer(text=f"(ID: {self.__level['id']})" + "ㅤ" * 20)
 
         await self.__message.edit(content="", embed=embed, view=self, file=file)
 
