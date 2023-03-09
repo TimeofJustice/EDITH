@@ -40,10 +40,10 @@ class View(nextcord.ui.View):
 
 
 class Button(nextcord.ui.Button):
-    def __init__(self, label, style, row, callback, args, disabled=False):
+    def __init__(self, label, style, row, callback, args, disabled=False, emoji=None):
         self.__callback = callback
         self.__args = args
-        super().__init__(label=label, style=style, row=row, disabled=disabled)
+        super().__init__(label=label, emoji=emoji, style=style, row=row, disabled=disabled)
 
     async def callback(self, interaction: nextcord.Interaction):
         await self.__callback(interaction, self.__args)

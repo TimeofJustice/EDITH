@@ -16,7 +16,7 @@ class View(view.View):
 
         super().__init__(author, guild, channel, message, bot_instance, instance_data)
 
-        self.__stop_button = Button(label="❌ Stop", row=0, args=("stop",),
+        self.__stop_button = Button(label="Stop", emoji="❌", row=0, args=("stop",),
                                     style=nextcord.ButtonStyle.red, callback=self.__callback_stop)
 
         self.add_item(self.__stop_button)
@@ -157,7 +157,7 @@ class View(view.View):
 
     async def __callback_stop(self, interaction: nextcord.Interaction, *args):
         if self.__is_author(interaction, exception_owner=True):
-            self.__stop_button.label = "❌ Stopping..."
+            self.__stop_button.label = "Stopping..."
             await self.__message.edit(view=self)
 
             await interaction.response.defer()

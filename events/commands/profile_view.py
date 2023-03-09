@@ -18,21 +18,21 @@ class View(view.View):
 
         super().__init__(author, guild, channel, message, bot_instance, instance_data)
 
-        self.__profile_button = Button(label="👤 Profile", row=0, args=("profile",),
+        self.__profile_button = Button(label="Profile", emoji="👤", row=0, args=("profile",),
                                        style=nextcord.ButtonStyle.blurple, callback=self.__callback_profile)
-        self.__back_button = Button(label="↩ Back", row=0, args=("back",),
+        self.__back_button = Button(label="Back", emoji="↩", row=0, args=("back",),
                                     style=nextcord.ButtonStyle.grey, callback=self.__callback_back)
-        self.__prev_button = Button(label="◀", row=0, args=("prev",),
+        self.__prev_button = Button(label="", emoji="◀", row=0, args=("prev",),
                                     style=nextcord.ButtonStyle.grey, callback=self.__callback_prev)
-        self.__overview_button = Button(label="📑 Overview", row=0, args=("overview",),
+        self.__overview_button = Button(label="Overview", emoji="📑", row=0, args=("overview",),
                                         style=nextcord.ButtonStyle.blurple, callback=self.__callback_achievements)
-        self.__next_button = Button(label="▶", row=0, args=("next",),
+        self.__next_button = Button(label="", emoji="▶", row=0, args=("next",),
                                     style=nextcord.ButtonStyle.grey, callback=self.__callback_next)
-        self.__tasks_button = Button(label="📋 Tasks", row=0, args=("tasks",),
+        self.__tasks_button = Button(label="Tasks", emoji="📋", row=0, args=("tasks",),
                                      style=nextcord.ButtonStyle.blurple, callback=self.__callback_tasks)
-        self.__achievements_button = Button(label="🏆 Achievements", row=0, args=("achievements",),
+        self.__achievements_button = Button(label="Achievements", emoji="🏆", row=0, args=("achievements",),
                                             style=nextcord.ButtonStyle.blurple, callback=self.__callback_achievements)
-        self.__close_button = Button(label="❌ Close", row=0, args=("close",),
+        self.__close_button = Button(label="Close", emoji="❌", row=0, args=("close",),
                                      style=nextcord.ButtonStyle.red, callback=self.__callback_close)
 
         self.add_item(self.__profile_button)

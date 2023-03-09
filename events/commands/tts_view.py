@@ -17,7 +17,7 @@ class View(view.View):
 
         super().__init__(author, guild, channel, message, bot_instance, instance_data)
 
-        self.__stop_button = Button(label="❌ Stop", row=0, args=("stop",),
+        self.__stop_button = Button(label="Stop", emoji="❌", row=0, args=("stop",),
                                     style=nextcord.ButtonStyle.red, callback=self.__callback_stop)
 
         self.add_item(self.__stop_button)

@@ -12,7 +12,7 @@ from nextcord.ext.application_checks import has_permissions, ApplicationMissingP
 from events import instance
 from events.commands import calculator_view, order66_view, profile_view, poll_view, tts_view, backup_view, \
     weather_command, purge_command, meme_command, up_command, about_command, logging_command, scm_command, movie_view
-from events.commands.scm_views import queue_view, config_view
+from events.commands.scm_views import queue_view, config_view, user_view
 
 from events.listeners import on_message_listener, on_raw_message_delete_listener, on_voice_state_update_listener
 from mysql_bridge import Mysql
@@ -35,12 +35,22 @@ class Bot:
         self.__started_at = datetime.now()
         self.__owner_id = 243747656470495233
         self.__mysql = Mysql()
+        self.__instances = {}
 
         self.__initiate_tables()
         self.__init_events()
         self.__init_commands()
 
         self.__bot.run(self.__token)
+
+    def get_instance(self, key):
+        return self.__instances.get(key)
+
+    def add_instance(self, key, instance):
+        self.__instances.update({key: instance})
+
+    def remove_instance(self, key):
+        self.__instances.pop(key)
 
     def get_bot(self):
         return self.__bot
@@ -109,6 +119,9 @@ class Bot:
         mysql.add_colm(table="backups", colm="date", definition="datetime",
                        clause="DEFAULT CURRENT_TIMESTAMP AFTER data")
 
+        mysql.create_table(table="scm_creators", colms="(id bigint(255) primary key,"
+                                                       "guild_id bigint(255) not null)")
+
         mysql.create_table(table="scm_rooms", colms="(id bigint(255) primary key,"
                                                     "guild_id bigint(255) not null,"
                                                     "channels TEXT not null,"
@@ -120,11 +133,11 @@ class Bot:
                                                     "guild_id bigint(255) not null,"
                                                     "emoji varchar(255) not null)")
 
-        mysql.create_table(table="scm_users", colms="(user_id bigint(255) not null,"
+        mysql.create_table(table="scm_users", colms="(id bigint(255) auto_increment primary key,"
+                                                    "user_id bigint(255) not null,"
                                                     "category_id bigint(255) not null,"
                                                     "guild_id bigint(255) not null,"
-                                                    "status int(255) not null,"
-                                                    "primary key (user_id, category_id))")
+                                                    "status varchar(255) not null)")
 
         mysql.create_table(table="scm_room_roles", colms="(role_id bigint(255) not null,"
                                                          "category_id bigint(255) not null,"
@@ -253,7 +266,8 @@ class Bot:
                 "tts": tts_view.View,
                 "queue": queue_view.View,
                 "config": config_view.View,
-                "movie": movie_view.View
+                "movie": movie_view.View,
+                "user": user_view.View
             }
 
             start = datetime.now()
@@ -471,6 +485,22 @@ class Bot:
             pass
 
         @scm.subcommand(
+            description="Activates or deactivates the S.C.M-System!"
+        )
+        @has_permissions(administrator=True)
+        async def setup(
+                interaction: nextcord.Interaction,
+                method: str = nextcord.SlashOption(
+                    name="method",
+                    description="Do you want to add or remove a role?",
+                    choices={"activate": "activate", "deactivate": "deactivate"},
+                    required=True
+                )
+        ):
+            command = scm_command.Command(interaction, self, {"command": "setup", "method": method})
+            await command.run()
+
+        @scm.subcommand(
             description="Adds or removes a role to the S.C.M-System!"
         )
         @has_permissions(administrator=True)
@@ -491,9 +521,39 @@ class Bot:
             command = scm_command.Command(interaction, self, {"command": "role", "method": method, "role": role})
             await command.run()
 
+        @scm.subcommand(
+            description="Opens the user-interface for your S.C.M-Room!"
+        )
+        async def user(
+                interaction: nextcord.Interaction,
+                target: nextcord.User = nextcord.SlashOption(
+                    name="user",
+                    description="Which user do you want to configure?",
+                    required=True
+                )
+        ):
+            command = scm_command.Command(interaction, self, {"command": "user", "user": target})
+            await command.run()
+
+        @scm.subcommand(
+            description="Opens the rename-interface for your S.C.M-Room!"
+        )
+        async def rename(
+                interaction: nextcord.Interaction,
+                target: str = nextcord.SlashOption(
+                    name="target",
+                    description="What do you want to rename?",
+                    choices={"voice-channel": "voice", "text-channel": "text", "category-channel": "category"},
+                    required=True
+                ),
+        ):
+            command = scm_command.Command(interaction, self, {"command": "rename", "target": target})
+            await command.run()
+
         @purge.error
         @logging.error
         @order66.error
+        @role.error
         async def command_error(error: nextcord.Interaction, ctx):
             if type(ctx) == ApplicationMissingPermissions or type(ctx) == ApplicationCheckFailure:
                 embed = nextcord.Embed(

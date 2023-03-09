@@ -14,12 +14,12 @@ class View(view.View):
 
         super().__init__(author, guild, channel, message, bot_instance, instance_data)
 
-        self.__create_button = Button(label="⭐ Create", row=0, args=("create",),
+        self.__create_button = Button(label="Create", emoji="⭐", row=0, args=("create",),
                                       style=nextcord.ButtonStyle.green, callback=self.__callback_create)
-        self.__load_button = Button(label="📤 Load", row=0, args=("load",),
+        self.__load_button = Button(label="Load", emoji="📤", row=0, args=("load",),
                                     style=nextcord.ButtonStyle.blurple, callback=self.__callback_load)
         self.__accept_button = None
-        self.__cancel_button = Button(label="❌ Cancel", row=0, args=("cancel",),
+        self.__cancel_button = Button(label="Cancel", emoji="❌", row=0, args=("cancel",),
                                       style=nextcord.ButtonStyle.red, callback=self.__callback_cancel)
 
         self.add_item(self.__create_button)
