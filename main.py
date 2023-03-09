@@ -11,7 +11,8 @@ from nextcord.ext.application_checks import has_permissions, ApplicationMissingP
 
 from events import instance
 from events.commands import calculator_view, order66_view, profile_view, poll_view, tts_view, backup_view, \
-    weather_command, purge_command, meme_command, up_command, about_command, logging_command, scm_command, movie_view
+    weather_command, purge_command, meme_command, up_command, about_command, logging_command, scm_command, movie_view, \
+    settings_command
 from events.commands.scm_views import queue_view, config_view, user_view
 
 from events.listeners import on_message_listener, on_raw_message_delete_listener, on_voice_state_update_listener
@@ -392,22 +393,6 @@ class Bot:
             await command.run()
 
         @bot.slash_command(
-            description="Activates the E.D.I.T.H. logging-tool!",
-            guild_ids=guild_ids
-        )
-        @has_permissions(administrator=True)
-        async def logging(
-                interaction: nextcord.Interaction,
-                level: int = nextcord.SlashOption(
-                    name="level",
-                    description="What level of logging do you want to use?",
-                    choices={"off": 0, "low": 1, "middle": 2, "high": 3, "highest": 4}
-                )
-        ):
-            command = logging_command.Command(interaction, self, {"level": level})
-            await command.run()
-
-        @bot.slash_command(
             description="Executes the order-66!",
             guild_ids=guild_ids
         )
@@ -550,10 +535,83 @@ class Bot:
             command = scm_command.Command(interaction, self, {"command": "rename", "target": target})
             await command.run()
 
+        @bot.slash_command(
+            guild_ids=guild_ids
+        )
+        async def settings(
+                interaction: nextcord.Interaction
+        ):
+            pass
+
+        @settings.subcommand(
+            description="Sets the default role for new members!"
+        )
+        @has_permissions(administrator=True)
+        async def default(
+                interaction: nextcord.Interaction,
+                target: nextcord.Role = nextcord.SlashOption(
+                    name="role",
+                    description="What should the default role be?",
+                    required=True
+                )
+        ):
+            command = settings_command.Command(interaction, self, {"command": "default", "role": target})
+            await command.run()
+
+        @settings.subcommand(
+            description="Opens the notifications-interface, to set the join and leave messages!"
+        )
+        @has_permissions(administrator=True)
+        async def notifications(
+                interaction: nextcord.Interaction,
+                target: nextcord.TextChannel = nextcord.SlashOption(
+                    name="text-channel",
+                    description="Where should the messages be posted?",
+                    required=True
+                )
+        ):
+            command = settings_command.Command(interaction, self, {"command": "notifications", "channel": target})
+            await command.run()
+
+        @settings.subcommand(
+            description="Disables the default role or the notifications!"
+        )
+        @has_permissions(administrator=True)
+        async def disable(
+                interaction: nextcord.Interaction,
+                method: str = nextcord.SlashOption(
+                    name="method",
+                    description="What do you want to disable?",
+                    choices={"default role": "default", "notifications": "notifications"},
+                    required=True
+                ),
+        ):
+            command = settings_command.Command(interaction, self, {"command": "disable", "method": method})
+            await command.run()
+
+        @settings.subcommand(
+            description="Activates the E.D.I.T.H. logging-tool!"
+        )
+        @has_permissions(administrator=True)
+        async def logging(
+                interaction: nextcord.Interaction,
+                level: int = nextcord.SlashOption(
+                    name="level",
+                    description="What level of logging do you want to use?",
+                    choices={"off": 0, "low": 1, "middle": 2, "high": 3, "highest": 4}
+                )
+        ):
+            command = logging_command.Command(interaction, self, {"level": level})
+            await command.run()
+
         @purge.error
         @logging.error
         @order66.error
         @role.error
+        @setup.error
+        @disable.error
+        @notifications.error
+        @default.error
         async def command_error(error: nextcord.Interaction, ctx):
             if type(ctx) == ApplicationMissingPermissions or type(ctx) == ApplicationCheckFailure:
                 embed = nextcord.Embed(
