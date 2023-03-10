@@ -15,7 +15,32 @@ class Command(command.Command):
 
     async def run(self):
         if self.__data["command"] == "default":
-            pass
+            guild_settings = self.__mysql.select(table="guilds",
+                                                 colms="settings",
+                                                 clause=f"WHERE guilds.id={self.__guild.id}")[0]
+
+            self.__mysql.update(table="settings", value=f"default_role='{self.__data['role'].id}'",
+                                clause=f"WHERE id='{guild_settings['settings']}'")
+
+            embed = nextcord.Embed(
+                description=f"Default role is now active!",
+                colour=nextcord.Colour.green()
+            )
+
+            embed.add_field(
+                name="Role",
+                value=f"**@{self.__data['role'].name}** ({self.__data['role'].id})",
+                inline=True
+            )
+
+            embed.set_author(
+                name="Settings",
+                icon_url="https://cdn-icons-png.flaticon.com/512/81/81020.png"
+            )
+
+            await self.__interaction.send(embed=embed, ephemeral=True)
+
+            print(self.__data["role"])
         elif self.__data["command"] == "notifications":
             await self.__interaction.response.send_modal(
                 NotificationsModal(self.__guild, self.__data, self.__bot_instance)
@@ -48,17 +73,15 @@ class NotificationsModal(nextcord.ui.Modal):
 
     async def callback(self, interaction: nextcord.Interaction):
         guild_settings = self.__mysql.select(table="guilds",
-                                             colms="guilds.id, settings.log_category, settings.id AS settings_id, "
-                                                   "settings.logging_level",
-                                             clause=f"INNER JOIN settings ON guilds.settings=settings.id "
-                                                    f"WHERE guilds.id={self.__guild.id}")[0]
+                                             colms="settings",
+                                             clause=f"WHERE guilds.id={self.__guild.id}")[0]
 
         self.__mysql.update(table="settings", value=f"welcome_msg='{self.__join.value}'",
-                            clause=f"WHERE id='{guild_settings['settings_id']}'")
+                            clause=f"WHERE id='{guild_settings['settings']}'")
         self.__mysql.update(table="settings", value=f"leave_msg='{self.__leave.value}'",
-                            clause=f"WHERE id='{guild_settings['settings_id']}'")
+                            clause=f"WHERE id='{guild_settings['settings']}'")
         self.__mysql.update(table="settings", value=f"msg_channel='{self.__data['channel'].id}'",
-                            clause=f"WHERE id='{guild_settings['settings_id']}'")
+                            clause=f"WHERE id='{guild_settings['settings']}'")
 
         embed = nextcord.Embed(
             description=f"Notifications are now active!",

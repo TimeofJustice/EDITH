@@ -45,10 +45,14 @@ class Command(command.Command):
                     category = await self.__guild.create_category(
                         name="Smart Channel Manager"
                     )
+                    self.__mysql.insert(table="custom_channels", colms="(id, guild_id)",
+                                        values=(category.id, self.__guild.id))
                     voice_channel = await self.__guild.create_voice_channel(
                         name="S.C.M",
                         category=category
                     )
+                    self.__mysql.insert(table="custom_channels", colms="(id, guild_id)",
+                                        values=(voice_channel.id, self.__guild.id))
 
                     self.__mysql.insert(table="scm_creators", colms="(id, guild_id)",
                                         values=(voice_channel.id, self.__guild.id))

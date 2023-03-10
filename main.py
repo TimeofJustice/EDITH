@@ -92,6 +92,7 @@ class Bot:
         mysql.add_colm(table="settings", colm="logging_level", definition="INT(255)",
                        clause="DEFAULT (0) AFTER messages_channel")
         mysql.add_colm(table="settings", colm="error_channel", definition="BIGINT(255)", clause="AFTER msg_channel")
+        mysql.add_colm(table="settings", colm="default_role", definition="BIGINT(255)", clause="AFTER error_channel")
 
         mysql.create_table(table="guilds", colms="(id BIGINT(255) PRIMARY KEY,"
                                                  "settings VARCHAR(255),"

@@ -169,7 +169,6 @@ class View(view.View):
     async def __callback_load(self, interaction: nextcord.Interaction, args):
         if self.__is_author(interaction):
             self.clear_items()
-            self.add_item(self.__cancel_button)
 
             backup_ids = self.__mysql.select(table="backups", colms="id, guild_id",
                                              clause=f"WHERE creator_id={self.__author.id} ORDER BY date")
@@ -190,10 +189,14 @@ class View(view.View):
                 self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
                 return
 
-            self.__select = StringSelect(row=1, args=("input",), callback=self.__callback_select,
+            self.__select = StringSelect(row=0, args=("input",), callback=self.__callback_select,
                                          options=options)
 
             self.add_item(self.__select)
+
+            self.__cancel_button.row = 1
+
+            self.add_item(self.__cancel_button)
 
             embed = nextcord.Embed(
                 title=f"Backup-Tool",
@@ -212,6 +215,9 @@ class View(view.View):
                                           style=nextcord.ButtonStyle.green, callback=self.__load_backup)
 
             self.add_item(self.__accept_button)
+
+            self.__cancel_button.row = 0
+
             self.add_item(self.__cancel_button)
 
             embed = nextcord.Embed(
@@ -531,7 +537,24 @@ class View(view.View):
         )
 
     async def __clean_guild(self):
-        await self.__guild.edit(name="Lädt...")
+        await self.__guild.edit(name="Loading...")
+
+        self.__mysql.delete(table="custom_channels", clause=f"WHERE guild_id={self.__guild.id}")
+        self.__mysql.delete(table="instances", clause=f"WHERE guild_id={self.__guild.id}")
+        self.__mysql.delete(table="scm_creators", clause=f"WHERE guild_id={self.__guild.id}")
+        self.__mysql.delete(table="scm_roles", clause=f"WHERE guild_id={self.__guild.id}")
+        self.__mysql.delete(table="scm_rooms", clause=f"WHERE guild_id={self.__guild.id}")
+        self.__mysql.delete(table="scm_room_roles", clause=f"WHERE guild_id={self.__guild.id}")
+        self.__mysql.delete(table="scm_users", clause=f"WHERE guild_id={self.__guild.id}")
+
+        guild_settings = self.__mysql.select(table="guilds",
+                                             colms="settings",
+                                             clause=f"WHERE guilds.id={self.__guild.id}")[0]
+
+        self.__mysql.update(table="settings", value="msg_channel=Null",
+                            clause=f"WHERE id='{guild_settings['settings']}'")
+        self.__mysql.update(table="settings", value="default_role=Null",
+                            clause=f"WHERE id='{guild_settings['settings']}'")
 
         for role in self.__guild.roles:
             try:
