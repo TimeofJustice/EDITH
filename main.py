@@ -591,6 +591,16 @@ class Bot:
             await command.run()
 
         @settings.subcommand(
+            description="Shows the current settings for this guild!"
+        )
+        @has_permissions(administrator=True)
+        async def show(
+                interaction: nextcord.Interaction
+        ):
+            command = settings_command.Command(interaction, self, {"command": "show"})
+            await command.run()
+
+        @settings.subcommand(
             description="Activates the E.D.I.T.H. logging-tool!"
         )
         @has_permissions(administrator=True)
