@@ -15,7 +15,8 @@ from events.commands import calculator_view, order66_view, profile_view, poll_vi
     settings_command
 from events.commands.scm_views import queue_view, config_view, user_view
 
-from events.listeners import on_message_listener, on_raw_message_delete_listener, on_voice_state_update_listener
+from events.listeners import on_message_listener, on_raw_message_delete_listener, on_voice_state_update_listener, \
+    on_member_join_listener, on_member_remove_listener
 from mysql_bridge import Mysql
 
 
@@ -245,6 +246,16 @@ class Bot:
         async def on_raw_message_delete(payload: nextcord.RawMessageDeleteEvent):
             listener = on_raw_message_delete_listener.Listener(self)
             await listener.call(payload)
+
+        @bot.event
+        async def on_member_join(member: nextcord.Member):
+            listener = on_member_join_listener.Listener(self)
+            await listener.call(member)
+
+        @bot.event
+        async def on_member_remove(member: nextcord.Member):
+            listener = on_member_remove_listener.Listener(self)
+            await listener.call(member)
 
         @bot.event
         async def on_voice_state_update(
