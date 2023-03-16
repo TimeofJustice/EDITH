@@ -46,9 +46,6 @@ class Modal(nextcord.ui.Modal):
 
 class View(view.View):
     def __init__(self, author, guild, channel, message, bot_instance, instance_data=None):
-        if instance_data is None:
-            instance_data = {}
-
         super().__init__(author, guild, channel, message, bot_instance, instance_data)
 
         self.__possibilities = instance_data["possibilities"]

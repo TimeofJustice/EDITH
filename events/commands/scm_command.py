@@ -9,9 +9,6 @@ from events.commands.scm_views import config_view, queue_view, user_view, rename
 
 class Command(command.Command):
     def __init__(self, interaction: nextcord.Interaction, bot_instance, data=None):
-        if data is None:
-            data = {}
-
         super().__init__(interaction, bot_instance, data)
 
     async def run(self):

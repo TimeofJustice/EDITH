@@ -9,9 +9,6 @@ from events.commands.scm_views import config_view, queue_view
 
 class Listener(events.listener.Listener):
     def __init__(self, bot_instance, data=None):
-        if data is None:
-            data = {}
-
         super().__init__(bot_instance, data)
 
     async def call(self, member: nextcord.Member, before: nextcord.VoiceState, after: nextcord.VoiceState):

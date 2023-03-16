@@ -5,9 +5,6 @@ import events.listener
 
 class Listener(events.listener.Listener):
     def __init__(self, bot_instance, data=None):
-        if data is None:
-            data = {}
-
         super().__init__(bot_instance, data)
 
     async def call(self, payload: nextcord.RawMessageDeleteEvent):

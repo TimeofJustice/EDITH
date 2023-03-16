@@ -1,0 +1,54 @@
+{
+  "dailies": [
+    {
+      "description": "Send 10 messages in text-channels",
+      "accomplish_type": "send_messages",
+      "amount": 10,
+      "xp": 100,
+      "completed": false,
+      "acknowledge": false
+    },
+    {
+      "description": "Be 30 minutes in voice-channels with at least one person",
+      "accomplish_type": "minutes_in_voice",
+      "amount": 30,
+      "xp": 250,
+      "completed": false,
+      "acknowledge": false
+    },
+    {
+      "description": "Guess 1 movie in the guessing game movle",
+      "accomplish_type": "movle_game",
+      "amount": 1,
+      "xp": 100,
+      "completed": false,
+      "acknowledge": false
+    }
+  ],
+  "weeklies": [
+    {
+      "description": "Send 150 messages in text-channels",
+      "accomplish_type": "send_messages",
+      "amount": 150,
+      "xp": 1500,
+      "completed": false,
+      "acknowledge": false
+    },
+    {
+      "description": "Be 360 minutes in voice-channels with at least one person",
+      "accomplish_type": "minutes_in_voice",
+      "amount": 360,
+      "xp": 3000,
+      "completed": false,
+      "acknowledge": false
+    },
+    {
+      "description": "Guess 10 movie in the guessing game movle",
+      "accomplish_type": "movle_game",
+      "amount": 10,
+      "xp": 1000,
+      "completed": false,
+      "acknowledge": false
+    }
+  ]
+}

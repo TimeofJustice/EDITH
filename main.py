@@ -1,9 +1,14 @@
 import asyncio
 import configparser
+import json
+import random
+import sys
+import time
 from datetime import datetime
 import os
 from pathlib import Path
 import nextcord
+import schedule
 from nextcord import ApplicationCheckFailure
 from nextcord.ext import commands
 from colorama import Style, Fore
@@ -12,11 +17,11 @@ from nextcord.ext.application_checks import has_permissions, ApplicationMissingP
 from events import instance
 from events.commands import calculator_view, order66_view, profile_view, poll_view, tts_view, backup_view, \
     weather_command, purge_command, meme_command, up_command, about_command, logging_command, scm_command, movie_view, \
-    settings_command
+    settings_command, music_command
 from events.commands.scm_views import queue_view, config_view, user_view
 
 from events.listeners import on_message_listener, on_raw_message_delete_listener, on_voice_state_update_listener, \
-    on_member_join_listener, on_member_remove_listener
+    on_member_join_listener, on_member_remove_listener, on_guild_remove_listener
 from mysql_bridge import Mysql
 
 
@@ -152,6 +157,148 @@ class Bot:
                                                          "movie_id varchar(255) not null,"
                                                          "clues int(255) not null)")
 
+        mysql.create_table(table="voice_sessions", colms="(member_id bigint(255) primary key,"
+                                                         "start datetime not null,"
+                                                         "guild_id bigint(255) not null)")
+
+        mysql.create_table(table="user_profiles", colms="(id bigint(255) primary key,"
+                                                        "tasks_daily text DEFAULT '[]',"
+                                                        "tasks_weekly text DEFAULT '[]',"
+                                                        "time_in_voice bigint(255) DEFAULT 0,"
+                                                        "voice_daily bigint(255) DEFAULT 0,"
+                                                        "voice_weekly bigint(255) DEFAULT 0,"
+                                                        "messages_send bigint(255) DEFAULT 0,"
+                                                        "messages_daily bigint(255) DEFAULT 0,"
+                                                        "messages_weekly bigint(255) DEFAULT 0,"
+                                                        "movle_daily bigint(255) DEFAULT 0,"
+                                                        "movle_weekly bigint(255) DEFAULT 0)")
+        mysql.add_colm(table="user_profiles", colm="xp", definition="bigint(255) DEFAULT 0", clause="AFTER id")
+
+    def create_user_profile(self, member: nextcord.Member):
+        profiles = self.__mysql.select(table="user_profiles", colms="id")
+
+        if {"id": member.id} not in profiles and not member.bot:
+            self.__mysql.insert(table="user_profiles", colms="(id)",
+                                values=(member.id,))
+
+        self.__get_tasks()
+
+    def __clear_dailies(self):
+        self.__mysql.update(table="user_profiles", value="voice_daily=0")
+        self.__mysql.update(table="user_profiles", value="messages_daily=0")
+        self.__mysql.update(table="user_profiles", value="movle_daily=0")
+        self.__mysql.update(table="user_profiles", value="tasks_daily='[]'")
+
+        self.__get_tasks()
+
+    def __clear_weeklies(self):
+        self.__mysql.update(table="user_profiles", value="voice_weekly=0")
+        self.__mysql.update(table="user_profiles", value="messages_weekly=0")
+        self.__mysql.update(table="user_profiles", value="movle_weekly=0")
+        self.__mysql.update(table="user_profiles", value="tasks_weekly='[]'")
+
+        self.__get_tasks()
+
+    def __get_tasks(self):
+        profiles = self.__mysql.select(table="user_profiles", colms="*")
+
+        for profile in profiles:
+            daily_tasks = json.loads(profile["tasks_daily"])
+            weekly_tasks = json.loads(profile["tasks_weekly"])
+
+            with open('data/json/tasks.json', encoding='utf-8') as f:
+                tasks = json.load(f)
+
+            possible_dailies = tasks["dailies"]
+            possible_weeklies = tasks["weeklies"]
+
+            if len(daily_tasks) == 0:
+                for x in range(0, 2):
+                    daily_task = random.choice(possible_dailies)
+
+                    with open('data/json/movies.json', encoding='utf-8') as f:
+                        levels = json.load(f)
+
+                    guessed_movies = len(self.__mysql.select(table="movie_guessing", colms="movie_id",
+                                                             clause=f"WHERE user_id={profile['id']}"))
+
+                    while daily_task["accomplish_type"] == "movle_game":
+                        if daily_task["amount"] < (len(levels) - guessed_movies):
+                            break
+
+                        possible_dailies.remove(daily_task)
+                        daily_task = random.choice(possible_dailies)
+
+                    daily_tasks.append(daily_task)
+                    possible_dailies.remove(daily_task)
+
+            if len(weekly_tasks) == 0:
+                for x in range(0, 2):
+                    weekly_task = random.choice(possible_weeklies)
+
+                    with open('data/json/movies.json', encoding='utf-8') as f:
+                        levels = json.load(f)
+
+                    guessed_movies = len(self.__mysql.select(table="movie_guessing", colms="movie_id",
+                                                             clause=f"WHERE user_id={profile['id']}"))
+
+                    while weekly_task["accomplish_type"] == "movle_game":
+                        if weekly_task["amount"] < (len(levels) - guessed_movies):
+                            break
+
+                        possible_weeklies.remove(weekly_task)
+                        weekly_task = random.choice(possible_weeklies)
+
+                    weekly_tasks.append(weekly_task)
+                    possible_weeklies.remove(weekly_task)
+
+            self.__mysql.update(table="user_profiles", value=f"tasks_daily='{json.dumps(daily_tasks)}'",
+                                clause=f"WHERE id={profile['id']}")
+            self.__mysql.update(table="user_profiles", value=f"tasks_weekly='{json.dumps(weekly_tasks)}'",
+                                clause=f"WHERE id={profile['id']}")
+
+    def check_user_progress(self, member: nextcord.Member):
+        user_profile = self.__mysql.select(table="user_profiles", colms="*",
+                                           clause=f"WHERE id={member.id}")[0]
+
+        daily_tasks = json.loads(user_profile["tasks_daily"])
+        weekly_tasks = json.loads(user_profile["tasks_weekly"])
+
+        for daily_task in daily_tasks:
+            progress = 0
+
+            if daily_task["accomplish_type"] == "minutes_in_voice":
+                progress = user_profile["voice_daily"]
+            elif daily_task["accomplish_type"] == "send_messages":
+                progress = user_profile["messages_daily"]
+            elif daily_task["accomplish_type"] == "movle_game":
+                progress = user_profile["movle_daily"]
+
+            if daily_task["amount"] <= progress and not daily_task["completed"]:
+                daily_task["completed"] = True
+                self.__mysql.update(table="user_profiles", value=f"xp=xp+{daily_task['xp']}",
+                                    clause=f"WHERE id={member.id}")
+
+        for weekly_task in weekly_tasks:
+            progress = 0
+
+            if weekly_task["accomplish_type"] == "minutes_in_voice":
+                progress = user_profile["voice_daily"]
+            elif weekly_task["accomplish_type"] == "send_messages":
+                progress = user_profile["messages_daily"]
+            elif weekly_task["accomplish_type"] == "movle_game":
+                progress = user_profile["movle_daily"]
+
+            if weekly_task["amount"] <= progress and not weekly_task["completed"]:
+                weekly_task["completed"] = True
+                self.__mysql.update(table="user_profiles", value=f"xp=xp+{weekly_task['xp']}",
+                                    clause=f"WHERE id={member.id}")
+
+        self.__mysql.update(table="user_profiles", value=f"tasks_daily='{json.dumps(daily_tasks)}'",
+                            clause=f"WHERE id={member.id}")
+        self.__mysql.update(table="user_profiles", value=f"tasks_weekly='{json.dumps(weekly_tasks)}'",
+                            clause=f"WHERE id={member.id}")
+
     async def __initiate_instances(self, sessions, views):
         mysql = self.__mysql
 
@@ -192,6 +339,31 @@ class Bot:
             except Exception as e:
                 print(e)
 
+    async def __reinit_voice_sessions(self, guild: nextcord.Guild):
+        mysql = self.__mysql
+
+        voice_sessions = mysql.select(table="voice_sessions", colms="*",
+                                      clause=f"WHERE guild_id={guild.id}")
+
+        for voice_session in voice_sessions:
+            member = guild.get_member(int(voice_session["member_id"]))
+
+            if member is not None:
+                listener = on_voice_state_update_listener.Listener(self)
+                listener.init_worker_thread(member, guild)
+            else:
+                mysql.delete(table="voice_sessions", clause=f"WHERE member_id={voice_session['member_id']}")
+
+        return len(voice_sessions)
+
+    async def __schedules(self):
+        schedule.every().day.at("00:00").do(self.__clear_dailies).tag('daily-tasks', 'tasks')
+        schedule.every().monday.at("00:00").do(self.__clear_weeklies).tag('weekly-tasks', 'tasks')
+
+        while True:
+            schedule.run_pending()
+            await asyncio.sleep(1)
+
     def __init_events(self):
         bot = self.__bot
         mysql = self.__mysql
@@ -210,14 +382,11 @@ class Bot:
 
                 print("(BOT) " + bot.user.name + " ist bereit [{}]".format(__now.strftime("%d/%m/%Y, %H:%M:%S")))
                 print("(BOT) Vorhandene Guilden ({}):".format(len(bot.guilds)))
+
                 for guild in bot.guilds:
                     print("\t- " + guild.name + "\t" + Fore.CYAN + str(guild.id) + Style.RESET_ALL)
 
-                    if guild.id not in guild_ids:
-                        uuid = mysql.get_uuid(table="settings", colm="id")
-                        mysql.insert(table="settings", colms="(id)", values=(uuid,))
-
-                        mysql.insert(table="guilds", colms="(id, settings)", values=(guild.id, uuid))
+                asyncio.create_task(self.__schedules())
 
                 self.__is_already_running = True
 
@@ -239,6 +408,9 @@ class Bot:
 
         @bot.event
         async def on_message(message: nextcord.Message):
+            if type(message.author) is nextcord.Member:
+                self.create_user_profile(message.author)
+
             listener = on_message_listener.Listener(self)
             await listener.call(message)
 
@@ -249,6 +421,8 @@ class Bot:
 
         @bot.event
         async def on_member_join(member: nextcord.Member):
+            self.create_user_profile(member)
+
             listener = on_member_join_listener.Listener(self)
             await listener.call(member)
 
@@ -263,11 +437,26 @@ class Bot:
                 before: nextcord.VoiceState,
                 after: nextcord.VoiceState
         ):
+            self.create_user_profile(member)
+
             listener = on_voice_state_update_listener.Listener(self)
             await listener.call(member, before, after)
 
         @bot.event
-        async def on_guild_available(guild):
+        async def on_guild_available(guild: nextcord.Guild):
+            guilds_data = mysql.select(table="guilds", colms="id")
+            guild_ids = []
+
+            for guild_data in guilds_data:
+                guild_ids.append(guild_data["id"])
+
+            for guild_ in bot.guilds:
+                if guild_.id not in guild_ids:
+                    uuid = mysql.get_uuid(table="settings", colm="id")
+                    mysql.insert(table="settings", colms="(id)", values=(uuid,))
+
+                    mysql.insert(table="guilds", colms="(id, settings)", values=(guild_.id, uuid))
+
             sessions = mysql.select(table="instances", colms="*",
                                     clause=f"WHERE guild_id={guild.id}")
             views = {
@@ -285,10 +474,33 @@ class Bot:
 
             start = datetime.now()
 
-            sessions_len = await self.__initiate_instances(sessions, views)
+            [message_session, voice_sessions] = await asyncio.gather(
+                self.__initiate_instances(sessions, views),
+                self.__reinit_voice_sessions(guild)
+            )
 
-            print(f"{Fore.GREEN}Es wurden {sessions_len} Instanzen für {guild} in "
+            print(f"{Fore.GREEN}Es wurden {message_session + voice_sessions} Instanzen für {guild} in "
                   f"{(datetime.now() - start).seconds}s geladen.{Style.RESET_ALL}")
+
+        @bot.event
+        async def on_guild_join(guild: nextcord.Guild):
+            guilds_data = mysql.select(table="guilds", colms="id")
+            guild_ids = []
+
+            for guild_data in guilds_data:
+                guild_ids.append(guild_data["id"])
+
+            for guild in bot.guilds:
+                if guild.id not in guild_ids:
+                    uuid = mysql.get_uuid(table="settings", colm="id")
+                    mysql.insert(table="settings", colms="(id)", values=(uuid,))
+
+                    mysql.insert(table="guilds", colms="(id, settings)", values=(guild.id, uuid))
+
+        @bot.event
+        async def on_guild_remove(guild: nextcord.Guild):
+            listener = on_guild_remove_listener.Listener(self)
+            await listener.call(guild)
 
     def __init_commands(self):
         bot = self.__bot
@@ -472,6 +684,51 @@ class Bot:
         ):
             command = instance.Instance(view_callback=movie_view.View, bot_instance=self)
             await command.create(interaction, "movie")
+
+        @bot.slash_command(
+            guild_ids=guild_ids
+        )
+        async def music(
+                interaction: nextcord.Interaction
+        ):
+            pass
+
+        @music.subcommand(
+            description="Plays music in the voice-channel you are in!"
+        )
+        async def play(
+                interaction: nextcord.Interaction,
+                link: str = nextcord.SlashOption(
+                    name="link",
+                    description="What do you want to play?",
+                    required=True
+                )
+        ):
+            command = music_command.Command(interaction, self, {"command": "queue", "link": link})
+            await command.run()
+
+        @music.subcommand(
+            description="Searches for music to play in the voice-channel you are in!"
+        )
+        async def search(
+                interaction: nextcord.Interaction,
+                prompt: str = nextcord.SlashOption(
+                    name="prompt",
+                    description="What do you search?",
+                    required=True
+                )
+        ):
+            command = music_command.Command(interaction, self, {"command": "queue", "prompt": prompt})
+            await command.run()
+
+        @music.subcommand(
+            description="Shows the current queue!"
+        )
+        async def queue(
+                interaction: nextcord.Interaction
+        ):
+            command = music_command.Command(interaction, self, {"command": "queue"})
+            await command.run()
 
         @bot.slash_command(
             guild_ids=guild_ids

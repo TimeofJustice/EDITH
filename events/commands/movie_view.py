@@ -10,9 +10,6 @@ from events.view import Button
 
 class View(view.View):
     def __init__(self, author, guild, channel, message, bot_instance, instance_data=None):
-        if instance_data is None:
-            instance_data = {}
-
         super().__init__(author, guild, channel, message, bot_instance, instance_data)
 
         self.__clue = 0
@@ -360,7 +357,22 @@ class View(view.View):
         self.__mysql.insert(table="movie_guessing", colms="(user_id, movie_id, clues)",
                             values=(self.__author.id, self.__level_key, self.__clue))
 
-        # Add XP
+        if self.__clue == 1:
+            self.__mysql.update(table="user_profiles", value="xp=xp+500",
+                                clause=f"WHERE id={self.__author.id}")
+        elif self.__clue == 2:
+            self.__mysql.update(table="user_profiles", value="xp=xp+300",
+                                clause=f"WHERE id={self.__author.id}")
+        elif self.__clue == 3:
+            self.__mysql.update(table="user_profiles", value="xp=xp+100",
+                                clause=f"WHERE id={self.__author.id}")
+
+        self.__mysql.update(table="user_profiles", value="movle_daily=movle_daily+1",
+                            clause=f"WHERE id={self.__author.id}")
+        self.__mysql.update(table="user_profiles", value="movle_weekly=movle_weekly+1",
+                            clause=f"WHERE id={self.__author.id}")
+
+        self.__bot_instance.check_user_progress(self.__author)
 
         embed = nextcord.Embed(
             title="You guessed it!",

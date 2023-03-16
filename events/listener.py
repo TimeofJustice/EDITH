@@ -6,4 +6,4 @@ class Listener:
         self.__mysql = Mysql()
         self.__bot_instance = bot_instance
         self.__bot = self.__bot_instance.get_bot()
-        self.__data = data
+        self.__data = data or {}

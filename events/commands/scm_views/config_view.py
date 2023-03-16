@@ -7,9 +7,6 @@ from mysql_bridge import Mysql
 
 class View(view.View):
     def __init__(self, author, guild, channel, message, bot_instance, instance_data=None):
-        if instance_data is None:
-            instance_data = {}
-
         super().__init__(author, guild, channel, message, bot_instance, instance_data)
 
         self.__add_button = Button(label="Add", emoji="📥", row=1, args=("add",),

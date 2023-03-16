@@ -1,3 +1,5 @@
+import re
+import enchant
 import nextcord
 
 import events.listener
@@ -5,9 +7,6 @@ import events.listener
 
 class Listener(events.listener.Listener):
     def __init__(self, bot_instance, data=None):
-        if data is None:
-            data = {}
-
         super().__init__(bot_instance, data)
 
     async def call(self, message: nextcord.Message):
@@ -60,4 +59,44 @@ class Listener(events.listener.Listener):
                 await messages_channel.send(embed=embed)
 
             if not author.bot:
-                print("User gained Point")
+                if 80 < self.__get_valid_word_percentage(message.content):
+                    self.__mysql.update(table="user_profiles", value="messages_send=messages_send+1",
+                                        clause=f"WHERE id={author.id}")
+                    self.__mysql.update(table="user_profiles", value="messages_daily=messages_daily+1",
+                                        clause=f"WHERE id={author.id}")
+                    self.__mysql.update(table="user_profiles", value="messages_weekly=messages_weekly+1",
+                                        clause=f"WHERE id={author.id}")
+
+                    self.__bot_instance.check_user_progress(author)
+
+    @staticmethod
+    def __get_valid_word_percentage(string, dictionaries=None):
+        """
+        Ermittelt den Prozentsatz, zu dem ein String aus tatsächlich existierenden Wörtern besteht, unter Verwendung
+        einer oder mehrerer Wörterbücher.
+
+        :param string: Der zu überprüfende String.
+        :param dictionaries: Eine Liste von Wörterbüchern.
+        :return: Der Prozentsatz, zu dem der String aus tatsächlich existierenden Wörtern besteht.
+        """
+        if dictionaries is None:
+            # Wenn keine Wörterbücher angegeben sind, verwende alle verfügbaren Wörterbücher
+            dictionaries = enchant.list_languages()
+
+        # Erstelle eine Liste von Wörterbuch-Objekten
+        dictionary_objects = [enchant.Dict(d) for d in dictionaries]
+
+        # Entferne alle Satzzeichen und Zahlen aus dem String
+        cleaned_string = re.sub(r'[^\w\s]', '', string)
+
+        # Teile den String in Wörter auf
+        words = cleaned_string.split()
+
+        # Zähle, wie viele Wörter in den Wörterbüchern enthalten sind
+        valid_word_count = sum(1 for word in words if any(d.check(word.lower()) for d in dictionary_objects))
+
+        # Berechne den Prozentsatz der gültigen Wörter
+        valid_word_percentage = valid_word_count / len(words) * 100
+
+        # Gib den Prozentsatz zurück
+        return valid_word_percentage

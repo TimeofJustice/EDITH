@@ -7,10 +7,8 @@ from events.view import Button
 
 class View(view.View):
     def __init__(self, author, guild, channel, message, bot_instance, instance_data=None):
-        if instance_data is None:
-            instance_data = {}
-
         super().__init__(author, guild, channel, message, bot_instance, instance_data)
+
         if "term" in self.__instance_data.keys():
             self.__term = self.__instance_data["term"]
         else:

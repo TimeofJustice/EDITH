@@ -15,6 +15,8 @@ class Instance:
         self.__channel = None
         self.__data = None
 
+        self.__mysql = Mysql()
+
     async def create(self, user_interaction: nextcord.Interaction, title, data=None, ephemeral=False):
         self.__guild = user_interaction.guild
         self.__channel = user_interaction.channel
@@ -65,9 +67,17 @@ class Instance:
         bot = self.__bot_instance.get_bot()
         self.__guild = bot.get_guild(instance_data["guild_id"])
         self.__channel = self.__guild.get_channel(instance_data["channel_id"])
-        self.__message = await self.__channel.fetch_message(instance_data["message_id"])
         self.__author = await self.__guild.fetch_member(instance_data["author_id"])
         self.__data = json.loads(instance_data["data"])
+
+        try:
+            self.__message = await self.__channel.fetch_message(instance_data["message_id"])
+        except Exception as e:
+            print(f"In '__initiate_instances' ({instance_data['message_id']}):\n\t{e}\n\tRecreate Instance...")
+            self.__mysql.delete(table="poll_submits", clause=f"WHERE poll_id={instance_data['message_id']}")
+            self.__mysql.delete(table="instances", clause=f"WHERE message_id={instance_data['message_id']}")
+            await self.create_manual(self.__channel, self.__author, instance_data["type"], self.__data)
+            return
 
         self.__bot_instance.add_instance(self.__message.id, self)
         message_view = self.__view_callback(self.__author, self.__guild, self.__channel, self.__message,

@@ -9,9 +9,6 @@ from events.view import Button
 
 class View(view.View):
     def __init__(self, author, guild, channel, message, bot_instance, instance_data=None):
-        if instance_data is None:
-            instance_data = {}
-
         super().__init__(author, guild, channel, message, bot_instance, instance_data)
 
         self.__create_button = Button(label="Create", emoji="⭐", row=0, args=("create",),
