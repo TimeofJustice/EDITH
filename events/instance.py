@@ -15,6 +15,8 @@ class Instance:
         self.__channel = None
         self.__data = None
 
+        self.__message_view = None
+
         self.__mysql = Mysql()
 
     async def create(self, user_interaction: nextcord.Interaction, title, data=None, ephemeral=False):
@@ -36,9 +38,9 @@ class Instance:
                              json.dumps(self.__data, ensure_ascii=False)))
         self.__bot_instance.add_instance(self.__message.id, self)
 
-        message_view = self.__view_callback(self.__author, self.__guild, self.__channel, self.__message,
-                                            self.__bot_instance, self.__data)
-        await message_view.init()
+        self.__message_view = self.__view_callback(self.__author, self.__guild, self.__channel, self.__message,
+                                                   self.__bot_instance, self.__data)
+        await self.__message_view.init()
 
     async def create_manual(self, text_channel: nextcord.TextChannel, author: nextcord.Member,
                             title, data=None):
@@ -59,9 +61,9 @@ class Instance:
                              json.dumps(self.__data, ensure_ascii=False)))
         self.__bot_instance.add_instance(self.__message.id, self)
 
-        message_view = self.__view_callback(self.__author, self.__guild, self.__channel, self.__message,
-                                            self.__bot_instance, self.__data)
-        await message_view.init()
+        self.__message_view = self.__view_callback(self.__author, self.__guild, self.__channel, self.__message,
+                                                   self.__bot_instance, self.__data)
+        await self.__message_view.init()
 
     async def initiate(self, instance_data):
         bot = self.__bot_instance.get_bot()
@@ -77,18 +79,22 @@ class Instance:
             self.__mysql.delete(table="poll_submits", clause=f"WHERE poll_id={instance_data['message_id']}")
             self.__mysql.delete(table="instances", clause=f"WHERE message_id={instance_data['message_id']}")
             await self.create_manual(self.__channel, self.__author, instance_data["type"], self.__data)
+
+            if instance_data["type"] == "config":
+                self.__mysql.update(table="scm_rooms", value=f"message_id={self.__message.id}",
+                                    clause=f"WHERE id={self.__channel.category.id}")
+                print(self.__message.id)
+
             return
 
         self.__bot_instance.add_instance(self.__message.id, self)
-        message_view = self.__view_callback(self.__author, self.__guild, self.__channel, self.__message,
-                                            self.__bot_instance, self.__data)
-        await self.__message.edit(view=message_view)
-        await message_view.init()
+        self.__message_view = self.__view_callback(self.__author, self.__guild, self.__channel, self.__message,
+                                                   self.__bot_instance, self.__data)
+        await self.__message.edit(view=self.__message_view)
+        await self.__message_view.init()
 
     async def reload(self):
-        message_view = self.__view_callback(self.__author, self.__guild, self.__channel, self.__message,
-                                            self.__bot_instance, self.__data)
-        await message_view.init()
+        await self.__message_view.init(reloaded=True)
 
     def get_message_id(self):
         return self.__message.id

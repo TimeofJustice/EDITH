@@ -57,7 +57,7 @@ class View(view.View):
         self.add_item(Button(label=f"ㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤ Close ㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤ",
                              style=nextcord.ButtonStyle.red, row=4, callback=self.__callback_close, args=()))
 
-    async def init(self):
+    async def init(self, **kwargs):
         author = self.__author
         screen = self.__term.replace("*", "×").replace("/", "÷")
 

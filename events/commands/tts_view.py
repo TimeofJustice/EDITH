@@ -19,7 +19,7 @@ class View(view.View):
 
         self.add_item(self.__stop_button)
 
-    async def init(self):
+    async def init(self, **kwargs):
         guild = self.__guild
 
         busy_guilds = []

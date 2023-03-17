@@ -19,7 +19,7 @@ class View(view.View):
         self.add_item(self.__voice_button)
         self.add_item(self.__block_button)
 
-    async def init(self):
+    async def init(self, **kwargs):
         embed = nextcord.Embed(
             description=f"{self.__author.display_name} is waiting!",
             colour=nextcord.Colour.purple()

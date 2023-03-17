@@ -253,19 +253,5 @@ class Command(command.Command):
                                               f"type='config'")
 
         for session in sessions:
-            try:
-                command = instance.Instance(view_callback=config_view.View, bot_instance=self.__bot_instance)
-                await command.initiate(session)
-            except Exception as e:
-                print(f"In '__initiate_instances' ({session['message_id']}):\n{e}")
-                self.__mysql.delete(table="poll_submits", clause=f"WHERE poll_id={session['message_id']}")
-                self.__mysql.delete(table="instances", clause=f"WHERE message_id={session['message_id']}")
-
-                try:
-                    guild = self.__bot.get_guild(session["guild_id"])
-                    channel = guild.get_channel(session["channel_id"])
-                    message = await channel.fetch_message(session["message_id"])
-
-                    await message.delete()
-                except Exception as e:
-                    print(e)
+            config_message = self.__bot_instance.get_instance(session["message_id"])
+            await config_message.reload()

@@ -66,7 +66,7 @@ class View(view.View):
         self.add_item(self.__achievements_button)
         self.add_item(self.__close_button)
 
-    async def init(self):
+    async def init(self, **kwargs):
         self.__bot_instance.create_user_profile(self.__author)
         await self.__callback_profile()
 

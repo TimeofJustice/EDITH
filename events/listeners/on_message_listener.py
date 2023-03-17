@@ -96,7 +96,7 @@ class Listener(events.listener.Listener):
         valid_word_count = sum(1 for word in words if any(d.check(word.lower()) for d in dictionary_objects))
 
         # Berechne den Prozentsatz der gültigen Wörter
-        valid_word_percentage = valid_word_count / len(words) * 100
+        valid_word_percentage = valid_word_count / (len(words) or 1) * 100
 
         # Gib den Prozentsatz zurück
         return valid_word_percentage

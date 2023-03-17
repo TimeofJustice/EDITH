@@ -41,7 +41,7 @@ class View(view.View):
         self.__forfeit = Button(label="Forfeit", row=0, args=("forfeit",),
                                 style=nextcord.ButtonStyle.red, callback=self.__callback_forfeit)
 
-    async def init(self):
+    async def init(self, **kwargs):
         self.clear_items()
         self.add_item(self.__start_level)
         self.add_item(self.__close)

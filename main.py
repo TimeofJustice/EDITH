@@ -18,6 +18,7 @@ from events import instance
 from events.commands import calculator_view, order66_view, profile_view, poll_view, tts_view, backup_view, \
     weather_command, purge_command, meme_command, up_command, about_command, logging_command, scm_command, movie_view, \
     settings_command, music_command
+from events.commands.music_views import play_view
 from events.commands.scm_views import queue_view, config_view, user_view
 
 from events.listeners import on_message_listener, on_raw_message_delete_listener, on_voice_state_update_listener, \
@@ -173,6 +174,21 @@ class Bot:
                                                         "movle_daily bigint(255) DEFAULT 0,"
                                                         "movle_weekly bigint(255) DEFAULT 0)")
         mysql.add_colm(table="user_profiles", colm="xp", definition="bigint(255) DEFAULT 0", clause="AFTER id")
+
+        mysql.create_table(table="music_songs", colms="(id varchar(255) primary key,"
+                                                      "url varchar(255) not null,"
+                                                      "data TEXT DEFAULT '{}',"
+                                                      "guild_id bigint(255) not null,"
+                                                      "is_playing tinyint(1) default 0,"
+                                                      "is_skipped tinyint(1) default 0,"
+                                                      "added_by bigint(255) not null,"
+                                                      "added_at datetime default current_timestamp)")
+
+        mysql.create_table(table="music_instances", colms="(id bigint(255) primary key,"
+                                                          "owner_id bigint(255) not null,"
+                                                          "channel_id bigint(255) not null,"
+                                                          "currently_playing varchar(255) not null,"
+                                                          "FOREIGN KEY (currently_playing) REFERENCES music_songs(id))")
 
     def create_user_profile(self, member: nextcord.Member):
         profiles = self.__mysql.select(table="user_profiles", colms="id")
@@ -469,7 +485,8 @@ class Bot:
                 "queue": queue_view.View,
                 "config": config_view.View,
                 "movie": movie_view.View,
-                "user": user_view.View
+                "user": user_view.View,
+                "status": play_view.View
             }
 
             start = datetime.now()
@@ -704,7 +721,7 @@ class Bot:
                     required=True
                 )
         ):
-            command = music_command.Command(interaction, self, {"command": "queue", "link": link})
+            command = music_command.Command(interaction, self, {"command": "play", "link": link})
             await command.run()
 
         @music.subcommand(
@@ -722,12 +739,12 @@ class Bot:
             await command.run()
 
         @music.subcommand(
-            description="Shows the current queue!"
+            description="Shows whats currently playing!"
         )
-        async def queue(
+        async def status(
                 interaction: nextcord.Interaction
         ):
-            command = music_command.Command(interaction, self, {"command": "queue"})
+            command = music_command.Command(interaction, self, {"command": "status"})
             await command.run()
 
         @bot.slash_command(

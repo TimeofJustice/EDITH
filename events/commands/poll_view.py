@@ -60,7 +60,7 @@ class View(view.View):
         else:
             return False
 
-    async def init(self):
+    async def init(self, **kwargs):
         mysql = Mysql()
         text = ""
 

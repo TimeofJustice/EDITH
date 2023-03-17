@@ -23,7 +23,7 @@ class View(view.View):
         self.add_item(self.__load_button)
         self.add_item(self.__cancel_button)
 
-    async def init(self):
+    async def init(self, **kwargs):
         author = self.__author
 
         embed = nextcord.Embed(

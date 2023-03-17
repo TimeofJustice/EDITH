@@ -18,15 +18,17 @@ class View(view.View):
         self.__type_button = Button(label="Roomtype", emoji="🕒", row=1, args=("type",),
                                     style=nextcord.ButtonStyle.grey, callback=self.__callback_type)
 
-        self.__dropdown = Dropdown(guild)
+        self.__dropdown = None
 
+    async def init(self, **kwargs):
+        self.__dropdown = Dropdown(self.__guild)
+
+        self.clear_items()
         self.add_item(self.__dropdown)
-
         self.add_item(self.__add_button)
         self.add_item(self.__remove_button)
         self.add_item(self.__type_button)
 
-    async def init(self):
         category = self.__channel.category
         room_data = self.__mysql.select(table="scm_rooms", colms="*", clause=f"WHERE id={category.id}")[0]
 

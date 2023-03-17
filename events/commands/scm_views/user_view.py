@@ -26,7 +26,7 @@ class View(view.View):
         self.__cancel_button = Button(label="Cancel", emoji="❌", row=0, args=("cancel",),
                                       style=nextcord.ButtonStyle.red, callback=self.__callback_cancel)
 
-    async def init(self):
+    async def init(self, **kwargs):
         category = self.__channel.category
         target = self.__guild.get_member(int(self.__instance_data["user"]))
         user_data = self.__mysql.select(table="scm_users", colms="status",
