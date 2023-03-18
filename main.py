@@ -18,7 +18,7 @@ from events import instance
 from events.commands import calculator_view, order66_view, profile_view, poll_view, tts_view, backup_view, \
     weather_command, purge_command, meme_command, up_command, about_command, logging_command, scm_command, movie_view, \
     settings_command, music_command
-from events.commands.music_views import play_view
+from events.commands.music_views import play_view, search_view
 from events.commands.scm_views import queue_view, config_view, user_view
 
 from events.listeners import on_message_listener, on_raw_message_delete_listener, on_voice_state_update_listener, \
@@ -486,7 +486,8 @@ class Bot:
                 "config": config_view.View,
                 "movie": movie_view.View,
                 "user": user_view.View,
-                "status": play_view.View
+                "status": play_view.View,
+                "search": search_view.View
             }
 
             start = datetime.now()
@@ -735,7 +736,7 @@ class Bot:
                     required=True
                 )
         ):
-            command = music_command.Command(interaction, self, {"command": "queue", "prompt": prompt})
+            command = music_command.Command(interaction, self, {"command": "search", "prompt": prompt})
             await command.run()
 
         @music.subcommand(

@@ -5,7 +5,7 @@ import nextcord
 import yt_dlp
 
 from events import command, instance
-from events.commands.music_views import play_view
+from events.commands.music_views import play_view, search_view
 
 
 class Command(command.Command):
@@ -138,7 +138,10 @@ class Command(command.Command):
 
                 await self.__interaction.send(embed=embed, ephemeral=True)
         if self.__data["command"] == "search":
-            pass
+            command_instance = instance.Instance(view_callback=search_view.View,
+                                                 bot_instance=self.__bot_instance)
+            await command_instance.create(self.__interaction, "search",
+                                          data={"prompt": self.__data["prompt"]})
         if self.__data["command"] == "status":
             command_instance = instance.Instance(view_callback=play_view.View, bot_instance=self.__bot_instance)
             await command_instance.create(self.__interaction, "status",
