@@ -2,8 +2,6 @@ import asyncio
 import configparser
 import json
 import random
-import sys
-import time
 from datetime import datetime
 import os
 from pathlib import Path

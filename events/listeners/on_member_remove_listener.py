@@ -18,12 +18,9 @@ class Listener(events.listener.Listener):
                                        clause=f"WHERE id='{guild_settings['settings']}'")[0]
 
         channel_id = settings["msg_channel"]
-        if channel_id is not None:
-            channel = guild.get_channel(int(channel_id))
-        else:
-            channel = None
+        channel = member.guild.get_channel(int(channel_id)) if channel_id else None
 
-        if channel is not None and settings["leave_msg"] is not None:
+        if channel and settings["leave_msg"]:
             embed = nextcord.Embed(
                 description=settings["leave_msg"]
                 .replace("[member]", member.display_name)

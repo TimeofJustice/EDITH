@@ -18,21 +18,15 @@ class Listener(events.listener.Listener):
                                        clause=f"WHERE id='{guild_settings['settings']}'")[0]
 
         role_id = settings["default_role"]
-        if role_id is not None:
-            role = guild.get_role(int(role_id))
-        else:
-            role = None
+        role = member.guild.get_role(int(role_id)) if role_id else None
 
         channel_id = settings["msg_channel"]
-        if channel_id is not None:
-            channel = guild.get_channel(int(channel_id))
-        else:
-            channel = None
+        channel = member.guild.get_channel(int(channel_id)) if channel_id else None
 
-        if role is not None:
+        if role:
             await member.add_roles(role)
 
-        if channel is not None and settings["welcome_msg"] is not None:
+        if channel and settings["welcome_msg"]:
             embed = nextcord.Embed(
                 description=settings["welcome_msg"]
                 .replace("[member]", member.display_name)
