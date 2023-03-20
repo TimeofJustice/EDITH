@@ -1,7 +1,7 @@
 import json
 import nextcord
 
-from mysql_bridge import Mysql
+import db
 
 
 class Instance:
@@ -17,12 +17,11 @@ class Instance:
 
         self.__message_view = None
 
-        self.__mysql = Mysql()
-
     async def __create_message(self, title: str):
-        self.__mysql.insert(table="instances", colms="(message_id, author_id, channel_id, guild_id, type, data)",
-                            values=(self.__message.id, self.__author.id, self.__channel.id, self.__guild.id, title,
-                                    json.dumps(self.__data, ensure_ascii=False)))
+        user = db.User.get(db.User.id == self.__author.id)
+        guild = db.Guild.get(db.Guild.id == self.__guild.id)
+        db.Instance.create(id=self.__message.id, user=user, channel_id=self.__channel.id,
+                           guild=guild, type=title, data=json.dumps(self.__data, ensure_ascii=False))
         self.__bot_instance.add_instance(self.__message.id, self)
 
         self.__message_view = self.__view_callback(self.__author, self.__guild, self.__channel, self.__message,
@@ -72,19 +71,21 @@ class Instance:
             await self.__message_view.init()
         except nextcord.NotFound as e:
             print(f"In '__initiate_instances' ({instance_data['message_id']}):\n\t{e}\n\tRecreate Instance...")
-            self.__mysql.delete(table="poll_submits", clause=f"WHERE poll_id={instance_data['message_id']}")
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={instance_data['message_id']}")
+            db.Instance.delete().where(db.Instance.id == instance_data['message_id']).execute()
+            db.PollVote.delete().where(db.Instance.poll_id == instance_data['message_id']).execute()
             await self.create_manual(self.__channel, self.__author, instance_data["type"], self.__data)
 
             if instance_data["type"] == "config":
-                self.__mysql.update(table="scm_rooms", value=f"message_id={self.__message.id}",
-                                    clause=f"WHERE id={self.__channel.category.id}")
+                scm_room = db.SCMRoom.get(db.SCMRoom.instance.id == self.__channel.category.id)
+                scm_room.message_id = self.__message.id
+                scm_room.update()
 
             return
         except Exception as e:
             print(f"In '__initiate_instances' ({instance_data['message_id']}):\n\t{e}")
-            self.__mysql.delete(table="poll_submits", clause=f"WHERE poll_id={instance_data['message_id']}")
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={instance_data['message_id']}")
+
+            db.Instance.delete().where(db.Instance.id == instance_data['message_id']).execute()
+            db.PollVote.delete().where(db.Instance.poll_id == instance_data['message_id']).execute()
 
             await self.__message.delete()
 

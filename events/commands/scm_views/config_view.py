@@ -2,7 +2,6 @@ import json
 import nextcord
 from events import view, permissions
 from events.view import Button
-from mysql_bridge import Mysql
 
 
 class View(view.View):

@@ -96,3 +96,6 @@ def get_valid_word_percentage(string, dictionaries=None):
 
 
 print(get_valid_word_percentage("Hallo"))
+
+for element in None:
+    print(element)

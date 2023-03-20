@@ -1,8 +1,8 @@
 import _thread
-from datetime import datetime
 import schedule
 import nextcord
 
+import db
 import events.listener
 from events.listeners import scm_listener
 
@@ -27,13 +27,16 @@ class Listener(events.listener.Listener):
         is_muted = after.mute or after.deaf or after.self_mute or after.self_deaf
 
         if (is_left or going_mute or after.afk) and not member.bot:
-            self.__mysql.delete(table="voice_sessions", clause=f"WHERE member_id={member.id} and guild_id={guild.id}")
+            db.VoiceSession.delete().where(db.VoiceSession.user == member.id,
+                                           db.VoiceSession.guild==guild.id).execute()
 
         if (is_joined or going_un_mute or is_moved) and not member.bot and not after.afk and not is_muted:
-            self.__mysql.delete(table="voice_sessions", clause=f"WHERE member_id={member.id}")
+            db.VoiceSession.delete().where(db.VoiceSession.user==member.id).execute()
 
-            self.__mysql.insert(table="voice_sessions", colms="(member_id, start, guild_id)",
-                                values=(member.id, datetime.now(), guild.id))
+            user_data = db.User.get_or_none(id=member.id)
+            guild_data = db.Guild.get_or_none(id=guild.id)
+
+            db.VoiceSession.create(user=user_data, guild=guild_data)
 
             self.init_worker_thread(member, guild)
 
@@ -44,14 +47,12 @@ class Listener(events.listener.Listener):
         schedule.every().minute.do(self.__voice_worker, bot_instance=bot_instance, member=member, guild=guild)
 
     def __voice_worker(self, bot_instance, member: nextcord.Member, guild: nextcord.Guild):
-        voice_session = self.__mysql.select(table="voice_sessions", colms="member_id, start",
-                                            clause=f"WHERE member_id={member.id} and guild_id={guild.id}")
+        voice_session = db.VoiceSession.get_or_none(user=member.id)
+        user_data = db.User.get_or_none(id=member.id)
 
-        if 0 < len(voice_session):
-            session = voice_session[0]
-
+        if voice_session:
             if member.voice is None:
-                self.__mysql.delete(table="voice_sessions", clause=f"WHERE member_id={member.id}")
+                db.VoiceSession.delete().where(db.VoiceSession.user==member.id).execute()
                 return schedule.CancelJob
             else:
                 voice_channel = member.voice.channel
@@ -64,12 +65,13 @@ class Listener(events.listener.Listener):
                     unique_members.append(member_in_voice)
 
             if 1 < len(unique_members):
-                self.__mysql.update(table="user_profiles", value="time_in_voice=time_in_voice+1",
-                                    clause=f"WHERE id={member.id}")
-                self.__mysql.update(table="user_profiles", value="voice_daily=voice_daily+1",
-                                    clause=f"WHERE id={member.id}")
-                self.__mysql.update(table="user_profiles", value="voice_weekly=voice_weekly+1",
-                                    clause=f"WHERE id={member.id}")
+                user_data.statistics.time_in_voice += 1
+                user_data.daily_progress.time_in_voice += 1
+                user_data.weekly_progress.time_in_voice += 1
+
+                user_data.statistics.save()
+                user_data.daily_progress.save()
+                user_data.weekly_progress.save()
 
                 bot_instance.check_user_progress(member)
         else:
