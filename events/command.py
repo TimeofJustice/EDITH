@@ -10,3 +10,5 @@ class Command:
         self.__bot_instance = bot_instance
         self.__data = data or {}
         self.__bot = self.__bot_instance.get_bot()
+
+        self.__bot_instance.create_user_profile(self.__author)

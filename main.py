@@ -15,7 +15,7 @@ from nextcord.ext.application_checks import has_permissions, ApplicationMissingP
 import db
 from events import instance
 from events.commands import weather_command, purge_command, meme_command, up_command, about_command, music_command, \
-    calculator_view, poll_view
+    calculator_view, poll_view, backup_view
 from events.commands.music_views import play_view, search_view
 from events.listeners import on_guild_remove_listener, on_member_join_listener, on_member_remove_listener, \
     on_message_listener, on_raw_message_delete_listener, on_voice_state_update_listener
@@ -386,7 +386,6 @@ class Bot:
             sessions = list(db.Instance.select().where(db.Instance.guild == guild.id))
             #     views = {
             #         "profile": profile_view.View,
-            #         "backup": backup_view.View,
             #         "order66": order66_view.View,
             #         "tts": tts_view.View,
             #         "queue": queue_view.View,
@@ -398,6 +397,7 @@ class Bot:
             views = {
                 "calculator": calculator_view.View,
                 "poll": poll_view.View,
+                "backup": backup_view.View,
                 "status": play_view.View,
                 "search": search_view.View
             }
@@ -591,17 +591,17 @@ class Bot:
         #         command = instance.Instance(view_callback=profile_view.View, bot_instance=self)
         #         await command.create(interaction, "profile", data={"user": user.id})
         #
-        #     @bot.slash_command(
-        #         description="Opens the backup-terminal!",
-        #         guild_ids=guild_ids
-        #     )
-        #     @has_permissions(administrator=True)
-        #     async def backup(
-        #             interaction: nextcord.Interaction
-        #     ):
-        #         command = instance.Instance(view_callback=backup_view.View, bot_instance=self)
-        #         await command.create(interaction, "backup")
-        #
+        @bot.slash_command(
+            description="Opens the backup-terminal!",
+            guild_ids=guild_ids
+        )
+        @has_permissions(administrator=True)
+        async def backup(
+                interaction: nextcord.Interaction
+        ):
+            command = instance.Instance(view_callback=backup_view.View, bot_instance=self)
+            await command.create(interaction, "backup")
+
         #     @bot.slash_command(
         #         description="Opens a movie guessing game!",
         #         guild_ids=guild_ids
@@ -811,6 +811,7 @@ class Bot:
     #         await command.run()
 
         @purge.error
+        @backup.error
         # @logging.error
         # @order66.error
         # @role.error

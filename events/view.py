@@ -15,6 +15,8 @@ class View(nextcord.ui.View):
         self.__bot_instance = bot_instance
         self.__bot = self.__bot_instance.get_bot()
 
+        self.__bot_instance.create_user_profile(self.__author)
+
     def __is_author(self, interaction: nextcord.Interaction, exception_owner=False):
         user = interaction.user
         if self.__author.id == user.id or (exception_owner and user.id == self.__guild.owner_id):
