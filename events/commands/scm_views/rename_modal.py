@@ -2,12 +2,9 @@ import json
 
 import nextcord
 
-from mysql_bridge import Mysql
-
 
 class Modal(nextcord.ui.Modal):
     def __init__(self, room, guild, data, bot_instance):
-        self.__mysql = Mysql()
         self.__room = room
         self.__guild = guild
         self.__data = data

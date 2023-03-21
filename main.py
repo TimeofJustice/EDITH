@@ -14,7 +14,8 @@ from nextcord.ext.application_checks import has_permissions, ApplicationMissingP
 
 import db
 from events import instance
-from events.commands import weather_command, purge_command, meme_command, up_command, about_command, music_command
+from events.commands import weather_command, purge_command, meme_command, up_command, about_command, music_command, \
+    calculator_view, poll_view
 from events.commands.music_views import play_view, search_view
 from events.listeners import on_guild_remove_listener, on_member_join_listener, on_member_remove_listener, \
     on_message_listener, on_raw_message_delete_listener, on_voice_state_update_listener
@@ -384,8 +385,6 @@ class Bot:
 
             sessions = list(db.Instance.select().where(db.Instance.guild == guild.id))
             #     views = {
-            #         "calculator": calculator_view.View,
-            #         "poll": poll_view.View,
             #         "profile": profile_view.View,
             #         "backup": backup_view.View,
             #         "order66": order66_view.View,
@@ -393,12 +392,12 @@ class Bot:
             #         "queue": queue_view.View,
             #         "config": config_view.View,
             #         "movie": movie_view.View,
-            #         "user": user_view.View,
-            #         "status": play_view.View,
-            #         "search": search_view.View
+            #         "user": user_view.View
             #     }
 
             views = {
+                "calculator": calculator_view.View,
+                "poll": poll_view.View,
                 "status": play_view.View,
                 "search": search_view.View
             }
@@ -445,32 +444,31 @@ class Bot:
 
             return check(predicate)
 
-        #
-        #     @bot.slash_command(
-        #         description="Opens an individual calculator, that supports basic mathematical equations.",
-        #         guild_ids=guild_ids
-        #     )
-        #     async def calculator(
-        #             interaction: nextcord.Interaction
-        #     ):
-        #         command = instance.Instance(view_callback=calculator_view.View, bot_instance=self)
-        #         await command.create(interaction, "calculator")
-        #
-        #     @bot.slash_command(
-        #         description="Creates a poll with one question and an amount of answers from 1 - 4.",
-        #         guild_ids=guild_ids
-        #     )
-        #     async def poll(
-        #             interaction: nextcord.Interaction,
-        #             number: int = nextcord.SlashOption(
-        #                 name="amount",
-        #                 description="Amount of answers (1-4)",
-        #                 min_value=1,
-        #                 max_value=4
-        #             )
-        #     ):
-        #         await interaction.response.send_modal(poll_view.Modal(number, self, interaction.guild))
-        #
+        @bot.slash_command(
+            description="Opens an individual calculator, that supports basic mathematical equations.",
+            guild_ids=guild_ids
+        )
+        async def calculator(
+                interaction: nextcord.Interaction
+        ):
+            command = instance.Instance(view_callback=calculator_view.View, bot_instance=self)
+            await command.create(interaction, "calculator")
+
+        @bot.slash_command(
+            description="Creates a poll with one question and an amount of answers from 1 - 4.",
+            guild_ids=guild_ids
+        )
+        async def poll(
+                interaction: nextcord.Interaction,
+                number: int = nextcord.SlashOption(
+                    name="amount",
+                    description="Amount of answers (1-4)",
+                    min_value=1,
+                    max_value=4
+                )
+        ):
+            await interaction.response.send_modal(poll_view.Modal(number, self, interaction.guild))
+
         @bot.slash_command(
             description="That's how the weather outside is, for you caveman!",
             guild_ids=guild_ids
@@ -811,41 +809,41 @@ class Bot:
     #     ):
     #         command = logging_command.Command(interaction, self, {"level": level})
     #         await command.run()
-    #
-    #     @purge.error
-    #     @logging.error
-    #     @order66.error
-    #     @role.error
-    #     @setup.error
-    #     @disable.error
-    #     @notifications.error
-    #     @default.error
-    #     async def command_error(error: nextcord.Interaction, ctx):
-    #         if type(ctx) == ApplicationMissingPermissions or type(ctx) == ApplicationCheckFailure:
-    #             embed = nextcord.Embed(
-    #                 color=nextcord.Colour.orange(),
-    #                 title="**YOU SHALL NOT PASS**",
-    #                 description="You don't have enough permission to perform this command!"
-    #             )
-    #
-    #             embed.set_image(url="attachment://403.png")
-    #
-    #             with open('data/pics/403.png', 'rb') as fp:
-    #                 await error.send(embed=embed, ephemeral=True, file=nextcord.File(fp, '403.png'))
-    #         else:
-    #             embed = nextcord.Embed(
-    #                 color=nextcord.Colour.orange(),
-    #                 title="**Unknown error**",
-    #                 description=f"An **unknown error** occurred\n"
-    #                             f"||{type(ctx)}||"
-    #             )
-    #
-    #             embed.set_image(url="attachment://unknown_error.gif")
-    #
-    #             with open('data/pics/unknown_error.gif', 'rb') as fp:
-    #                 await error.send(embed=embed, ephemeral=True, file=nextcord.File(fp, 'unknown_error.gif'))
-    #
-    #             print(ctx)
+
+        @purge.error
+        # @logging.error
+        # @order66.error
+        # @role.error
+        # @setup.error
+        # @disable.error
+        # @notifications.error
+        # @default.error
+        async def command_error(error: nextcord.Interaction, ctx):
+            if type(ctx) == ApplicationMissingPermissions or type(ctx) == ApplicationCheckFailure:
+                embed = nextcord.Embed(
+                    color=nextcord.Colour.orange(),
+                    title="**YOU SHALL NOT PASS**",
+                    description="You don't have enough permission to perform this command!"
+                )
+
+                embed.set_image(url="attachment://403.png")
+
+                with open('data/pics/403.png', 'rb') as fp:
+                    await error.send(embed=embed, ephemeral=True, file=nextcord.File(fp, '403.png'))
+            else:
+                embed = nextcord.Embed(
+                    color=nextcord.Colour.orange(),
+                    title="**Unknown error**",
+                    description=f"An **unknown error** occurred\n"
+                                f"||{type(ctx)}||"
+                )
+
+                embed.set_image(url="attachment://unknown_error.gif")
+
+                with open('data/pics/unknown_error.gif', 'rb') as fp:
+                    await error.send(embed=embed, ephemeral=True, file=nextcord.File(fp, 'unknown_error.gif'))
+
+                print(ctx)
 
 
 client = Bot()
