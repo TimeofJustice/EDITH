@@ -15,7 +15,7 @@ from nextcord.ext.application_checks import has_permissions, ApplicationMissingP
 import db
 from events import instance
 from events.commands import weather_command, purge_command, meme_command, up_command, about_command, music_command, \
-    calculator_view, poll_view, backup_view
+    calculator_view, poll_view, backup_view, profile_view
 from events.commands.music_views import play_view, search_view
 from events.listeners import on_guild_remove_listener, on_member_join_listener, on_member_remove_listener, \
     on_message_listener, on_raw_message_delete_listener, on_voice_state_update_listener
@@ -398,6 +398,7 @@ class Bot:
                 "calculator": calculator_view.View,
                 "poll": poll_view.View,
                 "backup": backup_view.View,
+                "profile": profile_view.View,
                 "status": play_view.View,
                 "search": search_view.View
             }
@@ -542,7 +543,6 @@ class Bot:
             command = about_command.Command(interaction, self)
             await command.run()
 
-        #
         #     @bot.slash_command(
         #         description="Executes the order-66!",
         #         guild_ids=guild_ids
@@ -573,24 +573,24 @@ class Bot:
         #         command = instance.Instance(view_callback=tts_view.View, bot_instance=self)
         #         await command.create(interaction, "tts", data={"phrase": phrase})
         #
-        #     @bot.slash_command(
-        #         description="Shows your or someone elses profile!",
-        #         guild_ids=guild_ids
-        #     )
-        #     async def profile(
-        #             interaction: nextcord.Interaction,
-        #             user: nextcord.User = nextcord.SlashOption(
-        #                 name="user",
-        #                 description="From who do you want to see the profile?",
-        #                 required=False
-        #             )
-        #     ):
-        #         if user is None:
-        #             user = interaction.user
-        #
-        #         command = instance.Instance(view_callback=profile_view.View, bot_instance=self)
-        #         await command.create(interaction, "profile", data={"user": user.id})
-        #
+        @bot.slash_command(
+            description="Shows your or someone elses profile!",
+            guild_ids=guild_ids
+        )
+        async def profile(
+                interaction: nextcord.Interaction,
+                user: nextcord.User = nextcord.SlashOption(
+                    name="user",
+                    description="From who do you want to see the profile?",
+                    required=False
+                )
+        ):
+            if user is None:
+                user = interaction.user
+
+            command = instance.Instance(view_callback=profile_view.View, bot_instance=self)
+            await command.create(interaction, "profile", data={"user": user.id})
+
         @bot.slash_command(
             description="Opens the backup-terminal!",
             guild_ids=guild_ids
@@ -656,7 +656,7 @@ class Bot:
         ):
             command = music_command.Command(interaction, self, {"command": "status"})
             await command.run()
-    #
+
     #     @bot.slash_command(
     #         guild_ids=guild_ids
     #     )

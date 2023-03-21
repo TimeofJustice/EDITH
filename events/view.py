@@ -35,7 +35,7 @@ class View(nextcord.ui.View):
             await super().on_error(error, item, interaction)
 
     async def on_timeout(self) -> None:
-        db.Instance.delete().where(db.Instance.id==self.__message.id).execute()
+        db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
         await self.__message.delete()
         print(f"{Fore.GREEN}Message ({self.__message.id}) had timeout{Style.RESET_ALL}")
 
