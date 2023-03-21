@@ -320,10 +320,10 @@ class View(view.View):
         user = interaction.user
         room_id = self.__channel.category.id
 
-        room_data = self.__mysql.select(table="scm_users", colms="user_id",
-                                        clause=f"WHERE category_id={room_id} and (status='admin' or status='owner')")
+        admin = db.SCMUser.get_or_none(id=user.id, room=room_id, status="admin")
+        owner = db.SCMUser.get_or_none(id=user.id, room=room_id, status="owner")
 
-        if {"user_id": user.id} in room_data:
+        if admin or owner:
             return True
         else:
             return False
@@ -333,21 +333,21 @@ class Dropdown(nextcord.ui.Select):
     def __init__(self, guild):
         options = []
 
-        role_datas = mysql.select(table="scm_roles", colms="id, emoji", clause=f"WHERE guild_id={guild.id}")
+        roles = list(db.SCMRole.select().where(db.SCMRoom.guild == guild.id))
         max_roles = 1
 
-        if len(role_datas) == 0:
+        if len(roles) == 0:
             options.append(nextcord.SelectOption(label=f"None",
                                                  value="None"))
             max_roles = 1
         else:
-            for role_data in role_datas:
-                role = guild.get_role(role_data["id"])
+            for role_data in roles:
+                role = guild.get_role(role_data.id)
 
-                options.append(nextcord.SelectOption(label=f"{role_data['emoji']} {role.name}",
+                options.append(nextcord.SelectOption(label=f"{role_data.emoji} {role.name}",
                                                      value=f"{role.id}"))
 
-            max_roles = len(role_datas)
+            max_roles = len(roles)
 
         super().__init__(placeholder=f"Select a role!", min_values=1, max_values=max_roles, options=options)
 

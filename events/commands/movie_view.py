@@ -50,14 +50,16 @@ class View(view.View):
         with open('data/json/movies.json', encoding='utf-8') as f:
             levels = json.load(f)
 
-        guessed_movies = len(self.__mysql.select(table="movie_guessing", colms="movie_id",
-                                                 clause=f"WHERE user_id={self.__author.id}"))
-        guessed_movies_one = len(self.__mysql.select(table="movie_guessing", colms="movie_id",
-                                                     clause=f"WHERE user_id={self.__author.id} and clues=1"))
-        guessed_movies_two = len(self.__mysql.select(table="movie_guessing", colms="movie_id",
-                                                     clause=f"WHERE user_id={self.__author.id} and clues=2"))
-        guessed_movies_three = len(self.__mysql.select(table="movie_guessing", colms="movie_id",
-                                                       clause=f"WHERE user_id={self.__author.id} and clues=3"))
+        guessed_movies = len(list(db.MovieGuess.select().where(db.MovieGuess.user == self.__author.id)))
+
+        guessed_movies_one = len(
+            list(db.MovieGuess.select().where(db.MovieGuess.user == self.__author.id, db.MovieGuess.num_clues == 1)))
+
+        guessed_movies_two = len(
+            list(db.MovieGuess.select().where(db.MovieGuess.user == self.__author.id, db.MovieGuess.num_clues == 2)))
+
+        guessed_movies_three = len(
+            list(db.MovieGuess.select().where(db.MovieGuess.user == self.__author.id, db.MovieGuess.num_clues == 3)))
 
         if guessed_movies == len(levels):
             self.remove_item(self.__start_level)
@@ -121,8 +123,7 @@ class View(view.View):
     async def __callback_start(self, interaction: nextcord.Interaction, args):
         if self.__is_author(interaction, exception_owner=False):
             self.__clue = 1
-            guessed_movies = self.__mysql.select(table="movie_guessing", colms="movie_id",
-                                                 clause=f"WHERE user_id={self.__author.id}")
+            guessed_movies = list(db.MovieGuess.select().where(db.MovieGuess.user == self.__author.id))
 
             with open('data/json/movies.json', encoding='utf-8') as f:
                 levels = json.load(f)
@@ -131,7 +132,7 @@ class View(view.View):
                 await self.init()
             else:
                 for movie in guessed_movies:
-                    levels.pop(movie["movie_id"])
+                    levels.pop(movie.movie_id)
 
                 rand_key = random.choice(list(levels.keys()))
 
@@ -355,23 +356,21 @@ class View(view.View):
         self.add_item(self.__next_level)
         self.add_item(self.__close)
 
-        self.__mysql.insert(table="movie_guessing", colms="(user_id, movie_id, clues)",
-                            values=(self.__author.id, self.__level_key, self.__clue))
+        db.MovieGuess.create(user=self.__author.id, movie_id=self.__level_key, num_clues=self.__clue)
+        user_profile = db.User.get_or_none(id=self.__author.id)
 
         if self.__clue == 1:
-            self.__mysql.update(table="user_profiles", value="xp=xp+500",
-                                clause=f"WHERE id={self.__author.id}")
+            user_profile.xp += 500
         elif self.__clue == 2:
-            self.__mysql.update(table="user_profiles", value="xp=xp+300",
-                                clause=f"WHERE id={self.__author.id}")
+            user_profile.xp += 300
         elif self.__clue == 3:
-            self.__mysql.update(table="user_profiles", value="xp=xp+100",
-                                clause=f"WHERE id={self.__author.id}")
+            user_profile.xp += 100
 
-        self.__mysql.update(table="user_profiles", value="movle_daily=movle_daily+1",
-                            clause=f"WHERE id={self.__author.id}")
-        self.__mysql.update(table="user_profiles", value="movle_weekly=movle_weekly+1",
-                            clause=f"WHERE id={self.__author.id}")
+        user_profile.daily_progress.movies_guessed += 1
+        user_profile.weekly_progress.movies_guessed += 1
+        user_profile.save()
+        user_profile.daily_progress.save()
+        user_profile.weekly_progress.save()
 
         self.__bot_instance.check_user_progress(self.__author)
 

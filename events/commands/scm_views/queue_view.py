@@ -183,10 +183,10 @@ class View(view.View):
         user = interaction.user
         room_id = self.__channel.category.id
 
-        room_data = self.__mysql.select(table="scm_users", colms="user_id",
-                                        clause=f"WHERE category_id={room_id} and (status='admin' or status='owner')")
+        admin = db.SCMUser.get_or_none(id=user.id, room=room_id, status="admin")
+        owner = db.SCMUser.get_or_none(id=user.id, room=room_id, status="owner")
 
-        if {"user_id": user.id} in room_data:
+        if admin or owner:
             return True
         else:
             return False

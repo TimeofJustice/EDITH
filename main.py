@@ -15,7 +15,7 @@ from nextcord.ext.application_checks import has_permissions, ApplicationMissingP
 import db
 from events import instance
 from events.commands import weather_command, purge_command, meme_command, up_command, about_command, music_command, \
-    calculator_view, poll_view, backup_view, profile_view, tts_view
+    calculator_view, poll_view, backup_view, profile_view, tts_view, movie_view
 from events.commands.music_views import play_view, search_view
 from events.listeners import on_guild_remove_listener, on_member_join_listener, on_member_remove_listener, \
     on_message_listener, on_raw_message_delete_listener, on_voice_state_update_listener
@@ -387,7 +387,6 @@ class Bot:
             #     views = {
             #         "profile": profile_view.View,
             #         "order66": order66_view.View,
-            #         "tts": tts_view.View,
             #         "queue": queue_view.View,
             #         "config": config_view.View,
             #         "movie": movie_view.View,
@@ -400,6 +399,7 @@ class Bot:
                 "backup": backup_view.View,
                 "tts": tts_view.View,
                 "profile": profile_view.View,
+                "movie": movie_view.View,
                 "status": play_view.View,
                 "search": search_view.View
             }
@@ -603,15 +603,15 @@ class Bot:
             command = instance.Instance(view_callback=backup_view.View, bot_instance=self)
             await command.create(interaction, "backup")
 
-        #     @bot.slash_command(
-        #         description="Opens a movie guessing game!",
-        #         guild_ids=guild_ids
-        #     )
-        #     async def movle(
-        #             interaction: nextcord.Interaction
-        #     ):
-        #         command = instance.Instance(view_callback=movie_view.View, bot_instance=self)
-        #         await command.create(interaction, "movie")
+        @bot.slash_command(
+            description="Opens a movie guessing game!",
+            guild_ids=guild_ids
+        )
+        async def movle(
+                interaction: nextcord.Interaction
+        ):
+            command = instance.Instance(view_callback=movie_view.View, bot_instance=self)
+            await command.create(interaction, "movie")
 
         @bot.slash_command(
             guild_ids=guild_ids

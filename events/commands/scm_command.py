@@ -3,6 +3,7 @@ import random
 
 import nextcord
 
+import db
 from events import command, instance
 from events.commands.scm_views import config_view, queue_view, user_view, rename_modal
 
@@ -239,19 +240,18 @@ class Command(command.Command):
         user = interaction.user
         room_id = self.__channel.category.id
 
-        room_data = self.__mysql.select(table="scm_users", colms="user_id",
-                                        clause=f"WHERE category_id={room_id} and (status='admin' or status='owner')")
+        admin = db.SCMUser.get_or_none(id=user.id, room=room_id, status="admin")
+        owner = db.SCMUser.get_or_none(id=user.id, room=room_id, status="owner")
 
-        if {"user_id": user.id} in room_data:
+        if admin or owner:
             return True
         else:
             return False
 
     async def __sync_roles(self):
-        sessions = self.__mysql.select(table="instances", colms="*",
-                                       clause=f"WHERE guild_id={self.__guild.id} and "
-                                              f"type='config'")
+
+        sessions = list(db.Instance.select().where(db.Instance.guild == self.__guild.id, db.Instance.type == "config"))
 
         for session in sessions:
-            config_message = self.__bot_instance.get_instance(session["message_id"])
+            config_message = self.__bot_instance.get_instance(session.id)
             await config_message.reload()
