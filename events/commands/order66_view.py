@@ -5,6 +5,7 @@ from sys import platform
 
 import nextcord
 
+import db
 from events import view
 from events.view import Button
 
@@ -43,7 +44,7 @@ class View(view.View):
                 await self.__message.edit(content="", embed=embed, view=None,
                                           file=nextcord.File(fp, 'order66-2.gif'))
 
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
             await self.__message.edit(delete_after=5)
 
@@ -66,7 +67,7 @@ class View(view.View):
                     await self.__message.edit(content="", embed=embed, view=None,
                                               file=nextcord.File(fp, 'order66-2.gif'))
 
-                self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+                db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
                 await self.__message.edit(delete_after=5)
 
@@ -148,7 +149,7 @@ class View(view.View):
         if target.voice is not None:
             await target.move_to(start_channel)
 
-        self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+        db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
         await self.__message.edit(delete_after=10)
 
@@ -171,6 +172,6 @@ class View(view.View):
             with open('data/pics/order66-4.gif', 'rb') as fp:
                 await self.__message.edit(content="", embed=embed, view=None, file=nextcord.File(fp, 'order66-4.gif'))
 
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
         return args

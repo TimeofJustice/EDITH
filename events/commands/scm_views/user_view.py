@@ -1,5 +1,7 @@
 import json
 import nextcord
+
+import db
 from events import command, view, permissions
 from events.view import Button
 
@@ -113,7 +115,7 @@ class View(view.View):
             )
 
             del_after = 5
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
         else:
             embed = nextcord.Embed(
                 description=f"**{self.__author.display_name}** is a bot!",
@@ -128,7 +130,7 @@ class View(view.View):
             )
 
             del_after = 5
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
         await self.__message.edit(content="", embed=embed, view=self, delete_after=del_after)
 
@@ -176,7 +178,7 @@ class View(view.View):
 
             self.__mysql.insert(table="scm_users", colms="(user_id, category_id, guild_id, status)",
                                 values=(target.id, category.id, self.__guild.id, "invited"))
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
             config_message = self.__bot_instance.get_instance(room_data["message_id"])
             await config_message.reload()
@@ -233,7 +235,7 @@ class View(view.View):
 
             self.__mysql.delete(table="scm_users",
                                 clause=f"WHERE user_id={target.id} and category_id={category.id}")
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
             config_message = self.__bot_instance.get_instance(room_data["message_id"])
             await config_message.reload()
@@ -292,7 +294,7 @@ class View(view.View):
                                 clause=f"WHERE user_id={target.id} and category_id={category.id}")
             self.__mysql.insert(table="scm_users", colms="(user_id, category_id, guild_id, status)",
                                 values=(target.id, category.id, self.__guild.id, "blocked"))
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
             config_message = self.__bot_instance.get_instance(room_data["message_id"])
             await config_message.reload()
@@ -347,7 +349,7 @@ class View(view.View):
 
             self.__mysql.delete(table="scm_users",
                                 clause=f"WHERE user_id={target.id} and category_id={category.id} and status='blocked'")
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
             config_message = self.__bot_instance.get_instance(room_data["message_id"])
             await config_message.reload()
@@ -406,7 +408,7 @@ class View(view.View):
                                 values=(target.id, category.id, self.__guild.id, "admin"))
             self.__mysql.insert(table="scm_users", colms="(user_id, category_id, guild_id, status)",
                                 values=(target.id, category.id, self.__guild.id, "invited"))
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
             config_message = self.__bot_instance.get_instance(room_data["message_id"])
             await config_message.reload()
@@ -445,7 +447,7 @@ class View(view.View):
 
             self.__mysql.delete(table="scm_users",
                                 clause=f"WHERE user_id={target.id} and category_id={category.id} and status='admin'")
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
             config_message = self.__bot_instance.get_instance(room_data["message_id"])
             await config_message.reload()
@@ -455,6 +457,6 @@ class View(view.View):
     async def __callback_cancel(self, interaction: nextcord.Interaction, args):
         if self.__is_author(interaction, exception_owner=True):
             await self.__message.delete()
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
         return args

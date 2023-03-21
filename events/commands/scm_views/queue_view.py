@@ -1,5 +1,7 @@
 import json
 import nextcord
+
+import db
 from events import command, view, permissions
 from events.view import Button
 
@@ -94,7 +96,7 @@ class View(view.View):
             self.__mysql.insert(table="scm_users", colms="(user_id, category_id, guild_id, status)",
                                 values=(self.__author.id, category.id, self.__guild.id, "invited"))
 
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
             await self.__author.move_to(voice_channel)
 
@@ -114,7 +116,7 @@ class View(view.View):
 
             await self.__author.move_to(voice_channel)
 
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
         return args
 
@@ -168,7 +170,7 @@ class View(view.View):
             self.__mysql.insert(table="scm_users", colms="(user_id, category_id, guild_id, status)",
                                 values=(self.__author.id, category.id, self.__guild.id, "blocked"))
 
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
             await self.__author.move_to(None)
 

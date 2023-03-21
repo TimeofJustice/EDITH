@@ -4,6 +4,7 @@ from difflib import SequenceMatcher
 
 import nextcord
 
+import db
 from events import view
 from events.view import Button
 
@@ -144,7 +145,7 @@ class View(view.View):
     async def __callback_close(self, interaction: nextcord.Interaction, args):
         if self.__is_author(interaction, exception_owner=True):
             await self.__message.delete()
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
         return args
 

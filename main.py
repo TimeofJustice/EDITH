@@ -15,7 +15,7 @@ from nextcord.ext.application_checks import has_permissions, ApplicationMissingP
 import db
 from events import instance
 from events.commands import weather_command, purge_command, meme_command, up_command, about_command, music_command, \
-    calculator_view, poll_view, backup_view, profile_view
+    calculator_view, poll_view, backup_view, profile_view, tts_view
 from events.commands.music_views import play_view, search_view
 from events.listeners import on_guild_remove_listener, on_member_join_listener, on_member_remove_listener, \
     on_message_listener, on_raw_message_delete_listener, on_voice_state_update_listener
@@ -398,6 +398,7 @@ class Bot:
                 "calculator": calculator_view.View,
                 "poll": poll_view.View,
                 "backup": backup_view.View,
+                "tts": tts_view.View,
                 "profile": profile_view.View,
                 "status": play_view.View,
                 "search": search_view.View
@@ -558,21 +559,21 @@ class Bot:
         #     ):
         #         command = instance.Instance(view_callback=order66_view.View, bot_instance=self)
         #         await command.create(interaction, "order66", data={"target": target.id})
-        #
-        #     @bot.slash_command(
-        #         description="Plays a custom phrase!",
-        #         guild_ids=guild_ids
-        #     )
-        #     async def tts(
-        #             interaction: nextcord.Interaction,
-        #             phrase: str = nextcord.SlashOption(
-        #                 name="phrase",
-        #                 description="What should I say?"
-        #             )
-        #     ):
-        #         command = instance.Instance(view_callback=tts_view.View, bot_instance=self)
-        #         await command.create(interaction, "tts", data={"phrase": phrase})
-        #
+
+        @bot.slash_command(
+            description="Plays a custom phrase!",
+            guild_ids=guild_ids
+        )
+        async def tts(
+                interaction: nextcord.Interaction,
+                phrase: str = nextcord.SlashOption(
+                    name="phrase",
+                    description="What should I say?"
+                )
+        ):
+            command = instance.Instance(view_callback=tts_view.View, bot_instance=self)
+            await command.create(interaction, "tts", data={"phrase": phrase})
+
         @bot.slash_command(
             description="Shows your or someone elses profile!",
             guild_ids=guild_ids

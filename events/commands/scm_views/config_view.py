@@ -1,5 +1,7 @@
 import json
 import nextcord
+
+import db
 from events import view, permissions
 from events.view import Button
 
@@ -311,6 +313,8 @@ class View(view.View):
             self.__mysql.delete(table="scm_users", clause=f"WHERE category_id={category.id}")
             self.__mysql.delete(table="instances", clause=f"WHERE channel_id={text_channel.id}")
             self.__mysql.delete(table="instances", clause=f"WHERE channel_id={config_channel.id}")
+            db.Instance.delete().where(db.Instance.channel_id == text_channel.id).execute()
+            db.Instance.delete().where(db.Instance.channel_id == config_channel.id).execute()
 
     def __is_admin(self, interaction):
         user = interaction.user
@@ -329,7 +333,6 @@ class Dropdown(nextcord.ui.Select):
     def __init__(self, guild):
         options = []
 
-        mysql = Mysql()
         role_datas = mysql.select(table="scm_roles", colms="id, emoji", clause=f"WHERE guild_id={guild.id}")
         max_roles = 1
 

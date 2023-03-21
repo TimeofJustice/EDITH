@@ -2,6 +2,8 @@ import json
 
 import nextcord
 
+import db
+
 
 class Modal(nextcord.ui.Modal):
     def __init__(self, room, guild, data, bot_instance):
@@ -16,10 +18,9 @@ class Modal(nextcord.ui.Modal):
         self.add_item(self.__name)
 
     async def callback(self, interaction: nextcord.Interaction):
-        room_data = self.__mysql.select(table="scm_rooms", colms="channels, message_id",
-                                        clause=f"WHERE id={self.__room.id}")[0]
+        room = db.SCMRoom.get_or_none(id=self.__room.id)
 
-        channels = json.loads(room_data["channels"])
+        channels = json.loads(room.channels)
         text_channel = self.__guild.get_channel(int(channels["text_channel"]))
         voice_channel = self.__guild.get_channel(int(channels["voice_channel"]))
         category = self.__room

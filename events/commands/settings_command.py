@@ -1,7 +1,6 @@
 import nextcord
 
 from events import command
-from mysql_bridge import Mysql
 
 
 class Command(command.Command):
