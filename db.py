@@ -157,6 +157,7 @@ class MusicSong(ModelBase):
     id = BigAutoField(primary_key=True)
     url = CharField(max_length=255, null=False)
     data = TextField(default="{}")
+    is_playing = BooleanField(default=False)
     guild = ForeignKeyField(Guild, to_field="id")
     added_by = ForeignKeyField(User, to_field="id")
     added_at = DateTimeField(default=datetime.now)

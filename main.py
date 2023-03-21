@@ -13,7 +13,9 @@ from colorama import Style, Fore
 from nextcord.ext.application_checks import has_permissions, ApplicationMissingPermissions, check, has_role
 
 import db
-from events.commands import weather_command, purge_command, meme_command, up_command, about_command
+from events import instance
+from events.commands import weather_command, purge_command, meme_command, up_command, about_command, music_command
+from events.commands.music_views import play_view, search_view
 from events.listeners import on_guild_remove_listener, on_member_join_listener, on_member_remove_listener, \
     on_message_listener, on_raw_message_delete_listener, on_voice_state_update_listener
 
@@ -90,7 +92,7 @@ class Bot:
         self.__get_tasks()
 
     def __clear_dailies(self):
-        users = db.User.select().execute()
+        users = list(db.User.select())
 
         for user in users:
             dailies = user.daily_tasks
@@ -109,7 +111,7 @@ class Bot:
         self.__get_tasks()
 
     def __clear_weeklies(self):
-        users = db.User.select().execute()
+        users = list(db.User.select())
 
         for user in users:
             weeklies = user.weekly_tasks
@@ -128,7 +130,7 @@ class Bot:
         self.__get_tasks()
 
     def __get_tasks(self):
-        users = db.User.select().execute()
+        users = list(db.User.select())
 
         for user in users:
             daily_tasks = user.daily_tasks
@@ -252,25 +254,24 @@ class Bot:
 
     async def __reinit_session(self, session, views):
         try:
-            pass
-            # command = instance.Instance(view_callback=views[session["type"]], bot_instance=self)
-            # await command.initiate(session)
+            command = instance.Instance(view_callback=views[session.type], bot_instance=self)
+            await command.initiate(session)
         except Exception as e:
-            print(f"In '__initiate_instances' ({session['message_id']}):\n{e}")
-            db.PollVote.delete().where(db.PollVote.poll_id == session['message_id']).execute()
-            db.Instance.delete().where(db.Instance.id == session['message_id']).execute()
+            print(f"In '__initiate_instances' ({session.id}):\n{e}")
+            db.PollVote.delete().where(db.PollVote.poll_id == session.id).execute()
+            db.Instance.delete().where(db.Instance.id == session.id).execute()
 
             try:
-                guild = self.__bot.get_guild(session["guild_id"])
-                channel = guild.get_channel(session["channel_id"])
-                message = await channel.fetch_message(session["message_id"])
+                guild = self.__bot.get_guild(session.guild.id)
+                channel = guild.get_channel(session.channel_id)
+                message = await channel.fetch_message(session.id)
 
                 await message.delete()
             except Exception as e:
                 print(e)
 
     async def __reinit_voice_sessions(self, guild: nextcord.Guild):
-        voice_sessions = db.VoiceSession.select().where(db.VoiceSession.guild == guild.id).execute()
+        voice_sessions = list(db.VoiceSession.select().where(db.VoiceSession.guild == guild.id))
 
         for voice_session in voice_sessions:
             member = guild.get_member(int(voice_session.user.id))
@@ -299,7 +300,7 @@ class Bot:
             if not self.__is_already_running:
                 await self.__bot.sync_all_application_commands()
 
-                guilds = db.Guild.select()
+                guilds = list(db.Guild.select())
                 guild_ids = []
                 __now = datetime.now()
 
@@ -370,7 +371,7 @@ class Bot:
 
         @bot.event
         async def on_guild_available(guild: nextcord.Guild):
-            guilds = db.Guild.select()
+            guilds = list(db.Guild.select())
             guild_ids = []
 
             for guild_ in guilds:
@@ -379,9 +380,9 @@ class Bot:
             for guild_ in bot.guilds:
                 if guild_.id not in guild_ids:
                     settings = db.Guild.Setting.create()
-                    guild = db.Guild.create(id=guild_.id, settings=settings)
-            #
-            sessions = db.Instance.select().where(db.Instance.guild == guild.id).execute()
+                    db.Guild.create(id=guild_.id, settings=settings)
+
+            sessions = list(db.Instance.select().where(db.Instance.guild == guild.id))
             #     views = {
             #         "calculator": calculator_view.View,
             #         "poll": poll_view.View,
@@ -396,10 +397,11 @@ class Bot:
             #         "status": play_view.View,
             #         "search": search_view.View
             #     }
-            #
 
-            sessions = []
-            views = {}
+            views = {
+                "status": play_view.View,
+                "search": search_view.View
+            }
             start = datetime.now()
 
             [message_session, voice_sessions] = await asyncio.gather(
@@ -407,14 +409,12 @@ class Bot:
                 self.__reinit_voice_sessions(guild)
             )
 
-            message_session, voice_sessions = 0, 0
-
             print(f"{Fore.GREEN}Es wurden {message_session + voice_sessions} Instanzen für {guild.name} in "
                   f"{(datetime.now() - start).seconds}s geladen.{Style.RESET_ALL}")
 
         @bot.event
         async def on_guild_join(guild: nextcord.Guild):
-            guilds = db.Guild.select().execute()
+            guilds = list(db.Guild.select())
             guild_ids = []
 
             for guild in guilds:
@@ -433,7 +433,7 @@ class Bot:
     def __init_commands(self):
         bot = self.__bot
 
-        guilds = db.Guild.select().execute()
+        guilds = list(db.Guild.select())
         guild_ids = []
 
         for guild in guilds:
@@ -543,120 +543,121 @@ class Bot:
         ):
             command = about_command.Command(interaction, self)
             await command.run()
-    #
-    #     @bot.slash_command(
-    #         description="Executes the order-66!",
-    #         guild_ids=guild_ids
-    #     )
-    #     @is_me()
-    #     async def order66(
-    #             interaction: nextcord.Interaction,
-    #             target: nextcord.User = nextcord.SlashOption(
-    #                 name="target",
-    #                 description="Who is you target?",
-    #                 required=True
-    #             )
-    #     ):
-    #         command = instance.Instance(view_callback=order66_view.View, bot_instance=self)
-    #         await command.create(interaction, "order66", data={"target": target.id})
-    #
-    #     @bot.slash_command(
-    #         description="Plays a custom phrase!",
-    #         guild_ids=guild_ids
-    #     )
-    #     async def tts(
-    #             interaction: nextcord.Interaction,
-    #             phrase: str = nextcord.SlashOption(
-    #                 name="phrase",
-    #                 description="What should I say?"
-    #             )
-    #     ):
-    #         command = instance.Instance(view_callback=tts_view.View, bot_instance=self)
-    #         await command.create(interaction, "tts", data={"phrase": phrase})
-    #
-    #     @bot.slash_command(
-    #         description="Shows your or someone elses profile!",
-    #         guild_ids=guild_ids
-    #     )
-    #     async def profile(
-    #             interaction: nextcord.Interaction,
-    #             user: nextcord.User = nextcord.SlashOption(
-    #                 name="user",
-    #                 description="From who do you want to see the profile?",
-    #                 required=False
-    #             )
-    #     ):
-    #         if user is None:
-    #             user = interaction.user
-    #
-    #         command = instance.Instance(view_callback=profile_view.View, bot_instance=self)
-    #         await command.create(interaction, "profile", data={"user": user.id})
-    #
-    #     @bot.slash_command(
-    #         description="Opens the backup-terminal!",
-    #         guild_ids=guild_ids
-    #     )
-    #     @has_permissions(administrator=True)
-    #     async def backup(
-    #             interaction: nextcord.Interaction
-    #     ):
-    #         command = instance.Instance(view_callback=backup_view.View, bot_instance=self)
-    #         await command.create(interaction, "backup")
-    #
-    #     @bot.slash_command(
-    #         description="Opens a movie guessing game!",
-    #         guild_ids=guild_ids
-    #     )
-    #     async def movle(
-    #             interaction: nextcord.Interaction
-    #     ):
-    #         command = instance.Instance(view_callback=movie_view.View, bot_instance=self)
-    #         await command.create(interaction, "movie")
-    #
-    #     @bot.slash_command(
-    #         guild_ids=guild_ids
-    #     )
-    #     async def music(
-    #             interaction: nextcord.Interaction
-    #     ):
-    #         pass
-    #
-    #     @music.subcommand(
-    #         description="Plays music in the voice-channel you are in!"
-    #     )
-    #     async def play(
-    #             interaction: nextcord.Interaction,
-    #             link: str = nextcord.SlashOption(
-    #                 name="link",
-    #                 description="What do you want to play?",
-    #                 required=True
-    #             )
-    #     ):
-    #         command = music_command.Command(interaction, self, {"command": "play", "link": link})
-    #         await command.run()
-    #
-    #     @music.subcommand(
-    #         description="Searches for music to play in the voice-channel you are in!"
-    #     )
-    #     async def search(
-    #             interaction: nextcord.Interaction,
-    #             prompt: str = nextcord.SlashOption(
-    #                 name="prompt",
-    #                 description="What do you search?",
-    #                 required=True
-    #             )
-    #     ):
-    #         command = music_command.Command(interaction, self, {"command": "search", "prompt": prompt})
-    #         await command.run()
-    #
-    #     @music.subcommand(
-    #         description="Shows whats currently playing!"
-    #     )
-    #     async def status(
-    #             interaction: nextcord.Interaction
-    #     ):
-    #         command = music_command.Command(interaction, self, {"command": "status"})
-    #         await command.run()
+
+        #
+        #     @bot.slash_command(
+        #         description="Executes the order-66!",
+        #         guild_ids=guild_ids
+        #     )
+        #     @is_me()
+        #     async def order66(
+        #             interaction: nextcord.Interaction,
+        #             target: nextcord.User = nextcord.SlashOption(
+        #                 name="target",
+        #                 description="Who is you target?",
+        #                 required=True
+        #             )
+        #     ):
+        #         command = instance.Instance(view_callback=order66_view.View, bot_instance=self)
+        #         await command.create(interaction, "order66", data={"target": target.id})
+        #
+        #     @bot.slash_command(
+        #         description="Plays a custom phrase!",
+        #         guild_ids=guild_ids
+        #     )
+        #     async def tts(
+        #             interaction: nextcord.Interaction,
+        #             phrase: str = nextcord.SlashOption(
+        #                 name="phrase",
+        #                 description="What should I say?"
+        #             )
+        #     ):
+        #         command = instance.Instance(view_callback=tts_view.View, bot_instance=self)
+        #         await command.create(interaction, "tts", data={"phrase": phrase})
+        #
+        #     @bot.slash_command(
+        #         description="Shows your or someone elses profile!",
+        #         guild_ids=guild_ids
+        #     )
+        #     async def profile(
+        #             interaction: nextcord.Interaction,
+        #             user: nextcord.User = nextcord.SlashOption(
+        #                 name="user",
+        #                 description="From who do you want to see the profile?",
+        #                 required=False
+        #             )
+        #     ):
+        #         if user is None:
+        #             user = interaction.user
+        #
+        #         command = instance.Instance(view_callback=profile_view.View, bot_instance=self)
+        #         await command.create(interaction, "profile", data={"user": user.id})
+        #
+        #     @bot.slash_command(
+        #         description="Opens the backup-terminal!",
+        #         guild_ids=guild_ids
+        #     )
+        #     @has_permissions(administrator=True)
+        #     async def backup(
+        #             interaction: nextcord.Interaction
+        #     ):
+        #         command = instance.Instance(view_callback=backup_view.View, bot_instance=self)
+        #         await command.create(interaction, "backup")
+        #
+        #     @bot.slash_command(
+        #         description="Opens a movie guessing game!",
+        #         guild_ids=guild_ids
+        #     )
+        #     async def movle(
+        #             interaction: nextcord.Interaction
+        #     ):
+        #         command = instance.Instance(view_callback=movie_view.View, bot_instance=self)
+        #         await command.create(interaction, "movie")
+
+        @bot.slash_command(
+            guild_ids=guild_ids
+        )
+        async def music(
+                interaction: nextcord.Interaction
+        ):
+            pass
+
+        @music.subcommand(
+            description="Plays music in the voice-channel you are in!"
+        )
+        async def play(
+                interaction: nextcord.Interaction,
+                link: str = nextcord.SlashOption(
+                    name="link",
+                    description="What do you want to play?",
+                    required=True
+                )
+        ):
+            command = music_command.Command(interaction, self, {"command": "play", "link": link})
+            await command.run()
+
+        @music.subcommand(
+            description="Searches for music to play in the voice-channel you are in!"
+        )
+        async def search(
+                interaction: nextcord.Interaction,
+                prompt: str = nextcord.SlashOption(
+                    name="prompt",
+                    description="What do you search?",
+                    required=True
+                )
+        ):
+            command = music_command.Command(interaction, self, {"command": "search", "prompt": prompt})
+            await command.run()
+
+        @music.subcommand(
+            description="Shows whats currently playing!"
+        )
+        async def status(
+                interaction: nextcord.Interaction
+        ):
+            command = music_command.Command(interaction, self, {"command": "status"})
+            await command.run()
     #
     #     @bot.slash_command(
     #         guild_ids=guild_ids

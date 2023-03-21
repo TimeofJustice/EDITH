@@ -7,6 +7,8 @@ from gtts import gTTS
 from langdetect import detect
 
 import nextcord
+
+import db
 from events import view, permissions
 from events.view import Button
 import yt_dlp
@@ -27,9 +29,8 @@ class View(view.View):
         self.__voice_client = None
         self.__radio = None
 
-        self.__music_instance = self.__mysql.select(table="music_instances", colms="*",
-                                                    clause=f"WHERE id={self.__guild.id}")[0]
-        self.__voice_channel = self.__guild.get_channel(int(self.__music_instance["channel_id"]))
+        self.__music_instance = db.MusicInstance.get_or_none(guild=self.__guild.id)
+        self.__voice_channel = self.__guild.get_channel(int(self.__music_instance.channel_id))
 
         self.__play_button = Button(label="Play", emoji="▶️", row=0, args=("play",),
                                     style=nextcord.ButtonStyle.blurple, callback=self.__play_callback)
@@ -63,15 +64,12 @@ class View(view.View):
             'nocheckcertificate': True,
             'buffersize': 16000
         }
-        music_instance = self.__mysql.select(table="music_instances", colms="*",
-                                             clause=f"WHERE id={self.__guild.id}")[0]
-
-        current_song = self.__mysql.select(table="music_songs", colms="*",
-                                           clause=f"WHERE id='{music_instance['currently_playing']}'")[0]
+        music_instance = db.MusicInstance.get_or_none(guild=self.__guild.id)
+        current_song = music_instance.currently_playing
 
         yt_dl = yt_dlp.YoutubeDL(ydl_opts)
         loop = asyncio.get_event_loop()
-        data = await loop.run_in_executor(None, lambda: yt_dl.extract_info(current_song["url"], download=False))
+        data = await loop.run_in_executor(None, lambda: yt_dl.extract_info(current_song.url, download=False))
 
         if data is not None:
             if 'entries' in data:
@@ -149,27 +147,26 @@ class View(view.View):
             self.__is_skipped = False
 
             if next_song_exists:
+                self.__is_paused = False
                 await self.__update_embed()
                 await self.__play_song()
 
     async def __update_embed(self):
-        music_instance = self.__mysql.select(table="music_instances", colms="*",
-                                             clause=f"WHERE id={self.__guild.id}")[0]
-        current_song = self.__mysql.select(table="music_songs", colms="*",
-                                           clause=f"WHERE id='{music_instance['currently_playing']}'")[0]
-        songs_in_queue = self.__mysql.select(table="music_songs", colms="*",
-                                             clause=f"WHERE guild_id={self.__guild.id} and "
-                                                    f"id<>'{music_instance['currently_playing']}' order by added_at")
-        next_song = songs_in_queue[0] if songs_in_queue else None
+        music_instance = db.MusicInstance.get_or_none(guild=self.__guild.id)
+        current_song = music_instance.currently_playing
+        songs_in_queue = list(db.MusicSong.select().where(
+            db.MusicSong.id != current_song.id
+        ).order_by(db.MusicSong.added_at))
+        next_song = songs_in_queue[0] if len(songs_in_queue) != 0 else None
 
         embed = nextcord.Embed(
             description=f"This is the music-terminal!",
             colour=nextcord.Colour.random()
         )
 
-        if current_song is not None:
-            added_by = self.__guild.get_member(int(current_song["added_by"]))
-            song_data = json.loads(current_song["data"])
+        if current_song:
+            added_by = self.__guild.get_member(int(current_song.added_by.id))
+            song_data = json.loads(current_song.data)
             td = timedelta(seconds=song_data['duration'])
 
             embed.add_field(
@@ -183,9 +180,9 @@ class View(view.View):
 
             embed.set_thumbnail(url=song_data["thumbnail"])
 
-        if next_song is not None:
-            added_by = self.__guild.get_member(int(next_song["added_by"]))
-            song_data = json.loads(next_song["data"])
+        if next_song:
+            added_by = self.__guild.get_member(int(next_song.added_by.id))
+            song_data = json.loads(next_song.data)
             td = timedelta(seconds=song_data['duration'])
 
             embed.add_field(
@@ -233,12 +230,6 @@ class View(view.View):
         await self.__update_embed()
 
     def __play(self):
-        music_instance = self.__mysql.select(table="music_instances", colms="*",
-                                             clause=f"WHERE id={self.__guild.id}")[0]
-
-        self.__mysql.update(table="music_songs", value="is_playing=1",
-                            clause=f"WHERE id='{music_instance['currently_playing']}'")
-
         self.__vote_pause_play = []
 
         self.clear_items()
@@ -261,12 +252,6 @@ class View(view.View):
         await self.__update_embed()
 
     def __pause(self):
-        music_instance = self.__mysql.select(table="music_instances", colms="*",
-                                             clause=f"WHERE id={self.__guild.id}")[0]
-
-        self.__mysql.update(table="music_songs", value="is_playing=0",
-                            clause=f"WHERE id='{music_instance['currently_playing']}'")
-
         self.__vote_pause_play = []
 
         self.clear_items()
@@ -289,22 +274,21 @@ class View(view.View):
         await self.__update_embed()
 
     async def __skip(self):
-        music_instance = self.__mysql.select(table="music_instances", colms="*",
-                                             clause=f"WHERE id={self.__guild.id}")[0]
+        music_instance = db.MusicInstance.get_or_none(guild=self.__guild.id)
+        current_song = music_instance.currently_playing
 
-        songs_in_queue = self.__mysql.select(table="music_songs", colms="*",
-                                             clause=f"WHERE guild_id={self.__guild.id} and "
-                                                    f"id<>'{music_instance['currently_playing']}' order by added_at")
-        next_song = songs_in_queue[0] if songs_in_queue else None
+        songs_in_queue = list(db.MusicSong.select().where(
+            db.MusicSong.id != current_song.id
+        ).order_by(db.MusicSong.added_at))
+        next_song = songs_in_queue[0] if len(songs_in_queue) != 0 else None
 
         self.__vote_skip = []
 
         if next_song is not None:
-            self.__mysql.update(table="music_instances", value=f"currently_playing='{next_song['id']}'",
-                                clause=f"WHERE id={self.__guild.id}")
-            self.__mysql.update(table="music_songs", value=f"is_playing=1",
-                                clause=f"WHERE id='{next_song['id']}'")
-            self.__mysql.delete(table="music_songs", clause=f"WHERE id='{music_instance['currently_playing']}'")
+            music_instance.currently_playing = next_song
+            music_instance.save()
+
+            current_song.delete_instance()
 
             self.clear_items()
             self.add_item(self.__pause_button)
@@ -332,10 +316,9 @@ class View(view.View):
             await self.__update_embed()
 
     async def __stop(self):
-        self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
-
-        self.__mysql.delete(table="music_instances", clause=f"WHERE id={self.__guild.id}")
-        self.__mysql.delete(table="music_songs", clause=f"WHERE guild_id={self.__guild.id}")
+        db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
+        db.MusicInstance.delete().where(db.MusicInstance.guild == self.__guild.id).execute()
+        db.MusicSong.delete().where(db.MusicSong.guild == self.__guild.id).execute()
 
         self.__is_stopped = True
 
@@ -344,7 +327,7 @@ class View(view.View):
 
     def __is_instance_owner(self, interaction: nextcord.Interaction, exception_owner=False):
         user = interaction.user
-        if self.__music_instance["owner_id"] == user.id or (exception_owner and user.id == self.__guild.owner_id):
+        if self.__music_instance.user.id == user.id or (exception_owner and user.id == self.__guild.owner_id):
             return True
         else:
             return False

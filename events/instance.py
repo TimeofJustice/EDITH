@@ -18,8 +18,9 @@ class Instance:
         self.__message_view = None
 
     async def __create_message(self, title: str):
-        user = db.User.get(db.User.id == self.__author.id)
-        guild = db.Guild.get(db.Guild.id == self.__guild.id)
+        self.__bot_instance.create_user_profile(self.__author)
+        user = db.User.get_or_none(db.User.id == self.__author.id)
+        guild = db.Guild.get_or_none(db.Guild.id == self.__guild.id)
         db.Instance.create(id=self.__message.id, user=user, channel_id=self.__channel.id,
                            guild=guild, type=title, data=json.dumps(self.__data, ensure_ascii=False))
         self.__bot_instance.add_instance(self.__message.id, self)
@@ -56,13 +57,13 @@ class Instance:
 
     async def initiate(self, instance_data):
         bot = self.__bot_instance.get_bot()
-        self.__guild = bot.get_guild(instance_data["guild_id"])
-        self.__channel = self.__guild.get_channel(instance_data["channel_id"])
-        self.__author = await self.__guild.fetch_member(instance_data["author_id"])
-        self.__data = json.loads(instance_data["data"])
+        self.__guild = bot.get_guild(instance_data.guild.id)
+        self.__channel = self.__guild.get_channel(instance_data.channel_id)
+        self.__author = await self.__guild.fetch_member(instance_data.user.id)
+        self.__data = json.loads(instance_data.data)
 
         try:
-            self.__message = await self.__channel.fetch_message(instance_data["message_id"])
+            self.__message = await self.__channel.fetch_message(instance_data.id)
 
             self.__bot_instance.add_instance(self.__message.id, self)
             self.__message_view = self.__view_callback(self.__author, self.__guild, self.__channel, self.__message,
@@ -70,9 +71,9 @@ class Instance:
             await self.__message.edit(view=self.__message_view)
             await self.__message_view.init()
         except nextcord.NotFound as e:
-            print(f"In '__initiate_instances' ({instance_data['message_id']}):\n\t{e}\n\tRecreate Instance...")
-            db.Instance.delete().where(db.Instance.id == instance_data['message_id']).execute()
-            db.PollVote.delete().where(db.Instance.poll_id == instance_data['message_id']).execute()
+            print(f"In '__initiate_instances' ({instance_data.id}):\n{e}\n\tRecreate Instance...")
+            db.PollVote.delete().where(db.PollVote.poll_id == instance_data.id).execute()
+            db.Instance.delete().where(db.Instance.id == instance_data.id).execute()
             await self.create_manual(self.__channel, self.__author, instance_data["type"], self.__data)
 
             if instance_data["type"] == "config":
@@ -82,10 +83,9 @@ class Instance:
 
             return
         except Exception as e:
-            print(f"In '__initiate_instances' ({instance_data['message_id']}):\n\t{e}")
-
-            db.Instance.delete().where(db.Instance.id == instance_data['message_id']).execute()
-            db.PollVote.delete().where(db.Instance.poll_id == instance_data['message_id']).execute()
+            print(f"In '__initiate_instances' ({instance_data.id}):\n{e}")
+            db.PollVote.delete().where(db.PollVote.poll_id == instance_data.id).execute()
+            db.Instance.delete().where(db.Instance.id == instance_data.id).execute()
 
             await self.__message.delete()
 
