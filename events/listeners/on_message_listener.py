@@ -80,7 +80,7 @@ class Listener(events.listener.Listener):
 
             if not author.bot:
                 # Update the user's profile if the message has a high enough percentage of valid words
-                if 80 < self.__get_valid_word_percentage(message.content):
+                if 50 < self.__get_valid_word_percentage(message.content):
                     user = db.User.get_or_none(db.User.id == author.id)
                     user.statistics.messages_send += 1
                     user.daily_progress.messages_send += 1
