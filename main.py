@@ -811,13 +811,13 @@ class Bot:
 
         @purge.error
         @backup.error
-        # @logging.error
-        # @order66.error
-        # @role.error
-        # @setup.error
-        # @disable.error
-        # @notifications.error
-        # @default.error
+        @logging.error
+        @order66.error
+        @role.error
+        @setup.error
+        @disable.error
+        @notifications.error
+        @default.error
         async def command_error(error: nextcord.Interaction, ctx):
             if type(ctx) == ApplicationMissingPermissions or type(ctx) == ApplicationCheckFailure:
                 embed = nextcord.Embed(
