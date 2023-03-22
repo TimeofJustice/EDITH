@@ -6,6 +6,7 @@ from gtts import gTTS
 from langdetect import detect, DetectorFactory, detect_langs
 import nextcord
 
+import db
 from events import command, view
 from events.view import Button
 
@@ -27,8 +28,7 @@ class View(view.View):
         for voice_client in self.__bot.voice_clients:
             busy_guilds.append(voice_client.guild.id)
 
-        sessions = self.__mysql.select(table="instances", colms="*",
-                                       clause=f"WHERE guild_id={self.__guild.id} AND type='tts'")
+        sessions = list(db.Instance.select().where(db.Instance.guild == self.__guild.id, db.Instance.type == "tts"))
 
         if guild.id in busy_guilds or 1 < len(sessions):
             embed = nextcord.Embed(
@@ -39,7 +39,7 @@ class View(view.View):
 
             await self.__message.edit(content="", embed=embed, view=None)
 
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
             await self.__message.edit(delete_after=5)
 
@@ -54,7 +54,7 @@ class View(view.View):
 
                 await self.__message.edit(content="", embed=embed, view=None)
 
-                self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+                db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
                 await self.__message.edit(delete_after=5)
 
@@ -66,9 +66,9 @@ class View(view.View):
                 channel = self.__guild.get_channel(self.__instance_data["origin_channel"])
 
             self.__clean_up()
-            self.__mysql.update(table="instances",
-                                value=f"data='{json.dumps(self.__instance_data, ensure_ascii=False)}'",
-                                clause=f"WHERE message_id={self.__message.id}")
+            instance = db.Instance.get_or_none(id=self.__message.id)
+            instance.data = json.dumps(self.__instance_data, ensure_ascii=False)
+            instance.save()
 
             embed = nextcord.Embed(
                 title="Execute TTS! (Detect language...)",
@@ -121,20 +121,18 @@ class View(view.View):
                 player = nextcord.FFmpegPCMAudio("data/mp3/{}_tts.mp3".format(guild.id), options="-loglevel panic")
             voice_client.play(player)
 
-            session = self.__mysql.select(table="instances", colms="*",
-                                          clause=f"WHERE message_id={self.__message.id}")
+            instance = db.Instance.get_or_none(id=self.__message.id)
 
-            asyncio.create_task(self.__check_playing(voice_client, session))
+            asyncio.create_task(self.__check_playing(voice_client, instance))
 
-    async def __check_playing(self, voice_client, session):
-        while voice_client.is_playing() and len(session) != 0:
-            session = self.__mysql.select(table="instances", colms="*",
-                                          clause=f"WHERE message_id={self.__message.id}")
+    async def __check_playing(self, voice_client, instance):
+        while voice_client.is_playing() and instance:
+            instance = db.Instance.get_or_none(id=self.__message.id)
             await asyncio.sleep(.5)
 
         await voice_client.disconnect()
 
-        self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+        db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
         await self.__message.delete()
 
@@ -145,7 +143,7 @@ class View(view.View):
 
             await interaction.response.defer()
 
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
             embed = nextcord.Embed(
                 title="TTS stopped!",

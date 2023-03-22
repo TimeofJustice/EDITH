@@ -2,8 +2,8 @@ import json
 from datetime import datetime
 import nextcord
 
+import db
 from events import view, instance
-from mysql_bridge import Mysql
 
 
 class Modal(nextcord.ui.Modal):
@@ -61,13 +61,14 @@ class View(view.View):
             return False
 
     async def init(self, **kwargs):
-        mysql = Mysql()
         text = ""
 
         index = 0
         for possibility in self.__possibilities:
-            submits = mysql.select(table="poll_submits", colms="*",
-                                   clause=f"WHERE poll_id={self.__message.id} and answer_id={index}")
+            submits = list(db.PollVote.select().where(
+                db.PollVote.poll_id == self.__message.id,
+                db.PollVote.answer_id == index
+            ))
 
             text += f"{possibility[0]}: {possibility[1]} **({len(submits)})**\n"
             index += 1
@@ -101,7 +102,6 @@ class PollDropdown(nextcord.ui.Select):
         super().__init__(placeholder=f"Answer", min_values=1, max_values=1, options=options)
 
     async def callback(self, interaction: nextcord.Interaction):
-        mysql = Mysql()
         user = interaction.user
         answer = 10
 
@@ -114,21 +114,24 @@ class PollDropdown(nextcord.ui.Select):
         elif self.values[0][0:2] == "4.":
             answer = 3
 
-        votes = mysql.select(table="poll_submits", colms="*",
-                             clause=f"WHERE user_id={user.id} and poll_id={self.__message.id}")
+        votes = list(db.PollVote.select().where(
+            db.PollVote.poll_id == self.__message.id,
+            db.PollVote.user == user.id
+        ))
 
         if len(votes) == 0:
-            uuid = mysql.get_uuid(table="poll_submits", colm="id")
-            mysql.insert(table="poll_submits", colms="(id, user_id, poll_id, answer_id)",
-                         values=(uuid, user.id, self.__message.id, answer))
+            db.PollVote.create(user=user.id, poll_id=self.__message.id, answer_id=answer)
             await self.update()
         else:
-            mysql.update(table="poll_submits", value=f"answer_id={answer}",
-                         clause=f"WHERE user_id={user.id} and poll_id={self.__message.id}")
+            db.PollVote.delete().where(
+                db.PollVote.user_id == user.id,
+                db.PollVote.poll_id == self.__message.id
+            ).execute()
+            db.PollVote.create(user=user.id, poll_id=self.__message.id, answer_id=answer)
+
             await self.update()
 
     async def update(self):
-        mysql = Mysql()
         title = self.__question
         text = ""
 
@@ -137,8 +140,10 @@ class PollDropdown(nextcord.ui.Select):
 
         index = 0
         for possibility in self.__possibilities:
-            submits = mysql.select(table="poll_submits", colms="*",
-                                   clause=f"WHERE poll_id={self.__message.id} and answer_id={index}")
+            submits = list(db.PollVote.select().where(
+                db.PollVote.poll_id == self.__message.id,
+                db.PollVote.answer_id == index
+            ))
 
             text += f"{possibility[0]}: {possibility[1]} **({len(submits)})**\n"
             index += 1

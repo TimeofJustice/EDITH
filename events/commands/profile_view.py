@@ -5,6 +5,7 @@ from math import floor
 import schedule
 import nextcord
 
+import db
 from events import view
 from events.view import Button
 
@@ -79,15 +80,14 @@ class View(view.View):
             self.__achievements_button.style = nextcord.ButtonStyle.blurple
             self.__achievements_button.disabled = False
 
-            user_profile = self.__mysql.select(table="user_profiles", colms="*",
-                                               clause=f"WHERE id={self.__instance_data['user']}")[0]
+            user_profile = db.User.get_or_none(id=self.__instance_data['user'])
 
             member = self.__guild.get_member(int(self.__instance_data["user"]))
-            xp = user_profile["xp"]
+            xp = user_profile.xp
             xp_data = self.__get_level(xp)
             level = xp_data[0]
-            time_in_voice = user_profile["time_in_voice"]
-            messages = user_profile["messages_send"]
+            time_in_voice = user_profile.statistics.time_in_voice
+            messages = user_profile.statistics.messages_send
             rand = random.Random()
             achievements = rand.randint(0, 100)
             xp_left = xp_data[1]
@@ -110,7 +110,7 @@ class View(view.View):
 
             embed.add_field(
                 name="\u200b",
-                value="\u200b",
+                value="ㅤ"*22,
                 inline=False
             )
 
@@ -133,8 +133,7 @@ class View(view.View):
             self.__achievements_button.style = nextcord.ButtonStyle.blurple
             self.__achievements_button.disabled = False
 
-            user_profile = self.__mysql.select(table="user_profiles", colms="*",
-                                               clause=f"WHERE id={self.__instance_data['user']}")[0]
+            user_profile = db.User.get_or_none(id=self.__instance_data['user'])
 
             member = self.__guild.get_member(int(self.__instance_data["user"]))
 
@@ -145,69 +144,65 @@ class View(view.View):
                 colour=nextcord.Colour.purple()
             )
 
-            daily_tasks = json.loads(user_profile["tasks_daily"])
-            weekly_tasks = json.loads(user_profile["tasks_weekly"])
+            daily_tasks = user_profile.daily_tasks
+            tasks = []
+            weekly_tasks = user_profile.weekly_tasks
 
             for daily_task in daily_tasks:
                 progress = 0
                 complete = "⭕"
 
-                if daily_task["accomplish_type"] == "minutes_in_voice":
-                    progress = user_profile["voice_daily"]
-                elif daily_task["accomplish_type"] == "send_messages":
-                    progress = user_profile["messages_daily"]
-                elif daily_task["accomplish_type"] == "movle_game":
-                    progress = user_profile["movle_daily"]
+                if daily_task.accomplish_type == "minutes_in_voice":
+                    progress = user_profile.daily_progress.time_in_voice
+                elif daily_task.accomplish_type == "send_messages":
+                    progress = user_profile.daily_progress.messages_send
+                elif daily_task.accomplish_type == "movle_game":
+                    progress = user_profile.daily_progress.movies_guessed
 
-                if daily_task["completed"]:
+                if daily_task.completed:
                     complete = "🟢"
-                    progress = daily_task["amount"]
+                    progress = daily_task.amount
 
-                daily_task.update({
-                    "complete": complete,
-                    "progress": progress
-                })
+                tasks.append([complete, progress])
 
             for weekly_task in weekly_tasks:
                 progress = 0
                 complete = "⭕"
 
-                if weekly_task["accomplish_type"] == "minutes_in_voice":
-                    progress = user_profile["voice_weekly"]
-                elif weekly_task["accomplish_type"] == "send_messages":
-                    progress = user_profile["messages_weekly"]
-                elif weekly_task["accomplish_type"] == "movle_game":
-                    progress = user_profile["movle_weekly"]
+                if weekly_task.accomplish_type == "minutes_in_voice":
+                    progress = user_profile.weekly_progress.time_in_voice
+                elif weekly_task.accomplish_type == "send_messages":
+                    progress = user_profile.weekly_progress.messages_send
+                elif weekly_task.accomplish_type == "movle_game":
+                    progress = user_profile.weekly_progress.movies_guessed
 
-                if weekly_task["completed"]:
+                if weekly_task.completed:
                     complete = "🟢"
-                    progress = weekly_task["amount"]
+                    progress = weekly_task.amount
 
-                weekly_task.update({
-                    "complete": complete,
-                    "progress": progress
-                })
+
+                tasks.append([complete, progress])
 
             embed.add_field(
                 name="Daily tasks",
-                value=f"{daily_tasks[0]['complete']} {daily_tasks[0]['description']}\n"
-                      f"ㅤ\u0020**({daily_tasks[0]['progress']} / {daily_tasks[0]['amount']})**"
-                      f"ㅤ*{daily_tasks[0]['xp']} XP*\n"
-                      f"{daily_tasks[1]['complete']} {daily_tasks[1]['description']}\n"
-                      f"ㅤ\u0020**({daily_tasks[1]['progress']}  / {daily_tasks[1]['amount']})**"
-                      f"ㅤ*{daily_tasks[1]['xp']} XP*\n\n"
+                value=f"{tasks[0][0]} {daily_tasks[0].description}\n"
+                      f"ㅤ\u0020**({tasks[0][1]} / {daily_tasks[0].amount})**"
+                      f"ㅤ*{daily_tasks[0].xp} XP*\n"
+                      f"{tasks[1][0]} {daily_tasks[1].description}\n"
+                      f"ㅤ\u0020**({tasks[1][1]}  / {daily_tasks[1].amount})**"
+                      f"ㅤ*{daily_tasks[1].xp} XP*\n\n"
                       f"ㅤ\u0020Reset: <t:{int(tasks_timers[0].next_run.timestamp())}:R>",
                 inline=False
             )
 
             embed.add_field(
                 name="Weekly tasks",
-                value=f"{weekly_tasks[0]['complete']} {weekly_tasks[0]['description']}\n"
-                      f"ㅤ\u0020**({weekly_tasks[0]['progress']} / {weekly_tasks[0]['amount']})**"
-                      f"ㅤ*{weekly_tasks[0]['xp']} XP*\n"
-                      f"{weekly_tasks[1]['complete']} {weekly_tasks[1]['description']}\n"
-                      f"ㅤ\u0020**({weekly_tasks[1]['progress']} / {weekly_tasks[1]['amount']})**"
-                      f"ㅤ*{weekly_tasks[1]['xp']} XP*\n\n"
+                value=f"{tasks[2][0]} {weekly_tasks[0].description}\n"
+                      f"ㅤ\u0020**({tasks[2][1]} / {weekly_tasks[0].amount})**"
+                      f"ㅤ*{weekly_tasks[0].xp} XP*\n"
+                      f"{tasks[3][0]} {weekly_tasks[1].description}\n"
+                      f"ㅤ\u0020**({tasks[3][1]} / {weekly_tasks[1].amount})**"
+                      f"ㅤ*{weekly_tasks[1].xp} XP*\n\n"
                       f"ㅤ\u0020Reset: <t:{int(tasks_timers[1].next_run.timestamp())}:R>",
                 inline=False
             )
@@ -232,8 +227,9 @@ class View(view.View):
 
             self.__instance_data["achievement_index"] = None
 
-            self.__mysql.update(table="instances", value=f"data='{json.dumps(self.__instance_data)}'",
-                                clause=f"WHERE message_id={self.__message.id}")
+            instance = db.Instance.get_or_none(id=self.__message.id)
+            instance.data = json.dumps(self.__instance_data)
+            instance.save()
 
             member = self.__guild.get_member(int(self.__instance_data["user"]))
             achievements = 10
@@ -286,8 +282,9 @@ class View(view.View):
             else:
                 self.__instance_data["achievement_index"] = 0
 
-            self.__mysql.update(table="instances", value=f"data='{json.dumps(self.__instance_data)}'",
-                                clause=f"WHERE message_id={self.__message.id}")
+            instance = db.Instance.get_or_none(id=self.__message.id)
+            instance.data = json.dumps(self.__instance_data)
+            instance.save()
 
             if self.__instance_data["achievement_index"] == achievements:
                 self.__next_button.disabled = True
@@ -325,8 +322,9 @@ class View(view.View):
 
             self.__instance_data["achievement_index"] = self.__instance_data["achievement_index"] - 1
 
-            self.__mysql.update(table="instances", value=f"data='{json.dumps(self.__instance_data)}'",
-                                clause=f"WHERE message_id={self.__message.id}")
+            instance = db.Instance.get_or_none(id=self.__message.id)
+            instance.data = json.dumps(self.__instance_data)
+            instance.save()
 
             if self.__instance_data["achievement_index"] == 0:
                 self.__prev_button.disabled = True
@@ -364,7 +362,7 @@ class View(view.View):
 
     async def __callback_close(self, interaction: nextcord.Interaction, args):
         if self.__is_author(interaction, exception_owner=True):
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
             await self.__message.delete()
 
     @staticmethod

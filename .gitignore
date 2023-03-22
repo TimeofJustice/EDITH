@@ -2,3 +2,5 @@
 .env
 *.ini
 __pycache__
+edith.db
+*.db

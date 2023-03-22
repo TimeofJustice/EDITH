@@ -3,6 +3,7 @@ import json
 import nextcord
 import requests
 
+import db
 from events import view
 from events.view import Button
 
@@ -39,27 +40,22 @@ class View(view.View):
             self.clear_items()
             self.add_item(self.__cancel_button)
 
-            backup_id = self.__mysql.get_uuid(table="backups", colm="id")
-
-            self.__create_backup(backup_id)
+            self.__create_backup()
 
             embed = nextcord.Embed(
-                description=f"Backup created successfully!\n"
-                            f"**ID: *{backup_id}***",
+                description=f"Backup created successfully!",
                 colour=nextcord.Colour.green()
             )
             embed.set_author(name="Backup-Tool",
                              icon_url="https://images-ext-2.discordapp.net/external/"
                                       "NU9I3Vhi79KV6srTXLJuHxOgiyzmEwgS5nFAbA13_YQ/https/cdn0.iconfinder.com/data/icons/"
                                       "small-n-flat/24/678134-sign-check-512.png")
-            embed.set_footer(text="ㅤ" * 22)
 
             await self.__message.edit(content="", embed=embed, view=None, delete_after=30)
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
-    def __create_backup(self, backup_id):
-        custom_channel_data = self.__mysql.select("custom_channels", colms="id",
-                                                  clause=" WHERE guild_id={}".format(self.__guild.id))
+    def __create_backup(self):
+        custom_channel_data = list(db.CustomChannel.select().where(db.CustomChannel.guild == self.__guild.id))
 
         custom_channels = []
         for custom_channel in custom_channel_data:
@@ -160,22 +156,21 @@ class View(view.View):
                     "synced": voice_channel.permissions_synced
                 })
 
-        self.__mysql.insert(table="backups", colms="(id, creator_id, guild_id, data)",
-                            values=(backup_id, self.__author.id, self.__guild.id, json.dumps(data, ensure_ascii=False)))
+        db.Backup.create(user=self.__author.id, guild=self.__guild.id, data=json.dumps(data, ensure_ascii=False))
 
     async def __callback_load(self, interaction: nextcord.Interaction, args):
         if self.__is_author(interaction):
             self.clear_items()
 
-            backup_ids = self.__mysql.select(table="backups", colms="id, guild_id",
-                                             clause=f"WHERE creator_id={self.__author.id} ORDER BY date")
+            backups = list(db.Backup.select().where(db.Backup.user == self.__author.id).order_by(db.Backup.date))
+
             options = []
-            for backup_id in backup_ids:
-                guild = self.__bot.get_guild(int(backup_id['guild_id']))
+            for backup in backups:
+                guild = self.__bot.get_guild(int(backup.guild.id))
 
-                options.append(nextcord.SelectOption(label=f"{backup_id['id']} ({guild.name})", value=backup_id["id"]))
+                options.append(nextcord.SelectOption(label=f"{backup.date} ({guild.name})", value=backup.id))
 
-            if 0 == len(backup_ids):
+            if 0 == len(backups):
                 embed = nextcord.Embed(
                     title=f"Backup-Tool",
                     description=f"You dont have any backups!",
@@ -183,7 +178,7 @@ class View(view.View):
                 )
 
                 await self.__message.edit(content="", embed=embed, view=None, delete_after=5)
-                self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+                db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
                 return
 
             self.__select = StringSelect(row=0, args=("input",), callback=self.__callback_select,
@@ -234,11 +229,11 @@ class View(view.View):
     async def __load_backup(self, interaction: nextcord.Interaction, args):
         backup_id = args[0]
 
-        data = self.__mysql.select(table="backups", colms="data", clause=f"WHERE id='{backup_id}'")
-        data = json.loads(data[0]["data"])
+        backup = db.Backup.get_or_none(id=backup_id)
+        data = json.loads(backup.data)
 
         await self.__message.delete()
-        self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+        db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
         await self.__clean_guild()
 
@@ -536,22 +531,21 @@ class View(view.View):
     async def __clean_guild(self):
         await self.__guild.edit(name="Loading...")
 
-        self.__mysql.delete(table="custom_channels", clause=f"WHERE guild_id={self.__guild.id}")
-        self.__mysql.delete(table="instances", clause=f"WHERE guild_id={self.__guild.id}")
-        self.__mysql.delete(table="scm_creators", clause=f"WHERE guild_id={self.__guild.id}")
-        self.__mysql.delete(table="scm_roles", clause=f"WHERE guild_id={self.__guild.id}")
-        self.__mysql.delete(table="scm_rooms", clause=f"WHERE guild_id={self.__guild.id}")
-        self.__mysql.delete(table="scm_room_roles", clause=f"WHERE guild_id={self.__guild.id}")
-        self.__mysql.delete(table="scm_users", clause=f"WHERE guild_id={self.__guild.id}")
+        db.CustomChannel.delete().where(db.CustomChannel.guild == self.__guild.id).execute()
+        db.Instance.delete().where(db.Instance.guild == self.__guild.id).execute()
+        db.SCMCreator.delete().where(db.SCMCreator.guild == self.__guild.id).execute()
+        db.SCMRole.delete().where(db.SCMRole.guild == self.__guild.id).execute()
+        rooms = list(db.SCMRoom.select().where(db.SCMRoom.guild == self.__guild.id))
+        db.SCMRoom.delete().where(db.SCMRoom.guild == self.__guild.id).execute()
+        db.SCMUser.delete().where(db.SCMUser.guild == self.__guild.id).execute()
 
-        guild_settings = self.__mysql.select(table="guilds",
-                                             colms="settings",
-                                             clause=f"WHERE guilds.id={self.__guild.id}")[0]
+        for room in rooms:
+            db.SCMRoomRole.delete().where(db.SCMRoomRole.room == room.id).execute()
 
-        self.__mysql.update(table="settings", value="msg_channel=Null",
-                            clause=f"WHERE id='{guild_settings['settings']}'")
-        self.__mysql.update(table="settings", value="default_role=Null",
-                            clause=f"WHERE id='{guild_settings['settings']}'")
+        guild = db.Guild.get_or_none(id=self.__guild.id)
+        guild.settings.msg_channel = None
+        guild.settings.default_role = None
+        guild.settings.save()
 
         for role in self.__guild.roles:
             try:
@@ -569,7 +563,7 @@ class View(view.View):
     async def __callback_cancel(self, interaction: nextcord.Interaction, args):
         if self.__is_author(interaction, exception_owner=True):
             await self.__message.delete()
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
         return args
 

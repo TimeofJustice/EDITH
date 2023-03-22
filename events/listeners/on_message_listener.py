@@ -4,6 +4,7 @@ from typing import Optional
 import enchant
 import nextcord
 
+import db
 import events.listener
 
 
@@ -35,25 +36,19 @@ class Listener(events.listener.Listener):
 
         if guild is not None:
             # Get the guild settings from the database
-            guild_settings = \
-                self.__mysql.select(table="guilds",
-                                    colms="guilds.id, settings.messages_channel, settings.id AS settings_id",
-                                    clause=f"INNER JOIN settings ON guilds.settings=settings.id "
-                                           f"WHERE guilds.id={guild.id}")[
-                    0]
+            guild_data = db.Guild.get_or_none(db.Guild.id == guild.id)
 
-            if guild_settings["messages_channel"] is not None and not author.bot:
+            if guild_data.settings.messages_channel is not None and not author.bot:
                 # Get the messages channel
-                messages_channel = guild.get_channel(guild_settings["messages_channel"])
+                messages_channel = guild.get_channel(guild_data.settings.messages_channel)
 
                 if messages_channel is None:
                     # If the messages channel doesn't exist, remove it from the database
-                    self.__mysql.update(table="settings", value=f"log_category=Null",
-                                        clause=f"WHERE id='{guild_settings['settings_id']}'")
-                    self.__mysql.update(table="settings", value=f"messages_channel=Null",
-                                        clause=f"WHERE id='{guild_settings['settings_id']}'")
-                    self.__mysql.update(table="settings", value=f"logging_level=0",
-                                        clause=f"WHERE id='{guild_settings['settings_id']}'")
+                    guild_data.settings.log_category = None
+                    guild_data.settings.messages_channel = None
+                    guild_data.settings.logging_level = None
+
+                    guild_data.settings.save()
 
                     return
 
@@ -86,12 +81,14 @@ class Listener(events.listener.Listener):
             if not author.bot:
                 # Update the user's profile if the message has a high enough percentage of valid words
                 if 80 < self.__get_valid_word_percentage(message.content):
-                    self.__mysql.update(table="user_profiles", value="messages_send=messages_send+1",
-                                        clause=f"WHERE id={author.id}")
-                    self.__mysql.update(table="user_profiles", value="messages_daily=messages_daily+1",
-                                        clause=f"WHERE id={author.id}")
-                    self.__mysql.update(table="user_profiles", value="messages_weekly=messages_weekly+1",
-                                        clause=f"WHERE id={author.id}")
+                    user = db.User.get_or_none(db.User.id == author.id)
+                    user.statistics.messages_send += 1
+                    user.daily_progress.messages_send += 1
+                    user.weekly_progress.messages_send += 1
+
+                    user.statistics.save()
+                    user.daily_progress.save()
+                    user.weekly_progress.save()
 
                     self.__bot_instance.check_user_progress(author)
 

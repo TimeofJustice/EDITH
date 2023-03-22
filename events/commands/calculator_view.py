@@ -1,6 +1,7 @@
 import json
 import nextcord
 
+import db
 from events import view
 from events.view import Button
 
@@ -80,8 +81,9 @@ class View(view.View):
 
         await self.__message.edit(content="", embed=embed)
 
-        self.__mysql.update(table="instances", value=f"data='{json.dumps(self.__instance_data)}'",
-                            clause=f"WHERE message_id={self.__message.id}")
+        instance = db.Instance.get_or_none(id=self.__message.id)
+        instance.data = json.dumps(self.__instance_data)
+        instance.save()
 
     async def __equals(self):
         screen = self.__term.replace("*", "×").replace("/", "÷")
@@ -135,6 +137,7 @@ class View(view.View):
     async def __callback_close(self, interaction: nextcord.Interaction, args):
         if self.__is_author(interaction, exception_owner=True):
             await self.__message.delete()
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            instance = db.Instance.get_or_none(id=self.__message.id)
+            instance.delete_instance()
 
         return args

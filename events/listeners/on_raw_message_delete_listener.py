@@ -1,5 +1,6 @@
 import nextcord
 
+import db
 import events.listener
 
 
@@ -13,14 +14,10 @@ class Listener(events.listener.Listener):
         if guild is not None:
             channel = guild.get_channel(payload.channel_id)
 
-            guild_settings = self.__mysql.select(table="guilds",
-                                                 colms="guilds.id, settings.messages_channel, "
-                                                       "settings.id AS settings_id",
-                                                 clause=f"INNER JOIN settings ON guilds.settings=settings.id "
-                                                        f"WHERE guilds.id={guild.id}")[0]
+            guild_data = db.Guild.get_or_none(db.Guild.id == guild.id)
 
-            if guild_settings["messages_channel"] is not None and channel.id != guild_settings["messages_channel"]:
-                messages_channel = guild.get_channel(guild_settings["messages_channel"])
+            if guild_data.settings.messages_channel is not None and channel.id != guild_data.settings.messages_channel:
+                messages_channel = guild.get_channel(guild_data.settings.messages_channel)
 
                 embed = nextcord.Embed(
                     color=nextcord.Colour.red()

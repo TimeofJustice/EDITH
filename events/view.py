@@ -1,7 +1,7 @@
 import nextcord
 from colorama import Fore, Style
 
-from mysql_bridge import Mysql
+import db
 
 
 class View(nextcord.ui.View):
@@ -12,9 +12,10 @@ class View(nextcord.ui.View):
         self.__channel = channel
         self.__message = message
         self.__instance_data = instance_data or {}
-        self.__mysql = Mysql()
         self.__bot_instance = bot_instance
         self.__bot = self.__bot_instance.get_bot()
+
+        self.__bot_instance.create_user_profile(self.__author)
 
     def __is_author(self, interaction: nextcord.Interaction, exception_owner=False):
         user = interaction.user
@@ -34,7 +35,7 @@ class View(nextcord.ui.View):
             await super().on_error(error, item, interaction)
 
     async def on_timeout(self) -> None:
-        self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+        db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
         await self.__message.delete()
         print(f"{Fore.GREEN}Message ({self.__message.id}) had timeout{Style.RESET_ALL}")
 
