@@ -127,7 +127,6 @@ class Command(command.Command):
 
 class NotificationsModal(nextcord.ui.Modal):
     def __init__(self, guild, data, bot_instance):
-        self.__mysql = Mysql()
         self.__guild = guild
         self.__data = data
         self.__bot_instance = bot_instance

@@ -15,7 +15,7 @@ from nextcord.ext.application_checks import has_permissions, ApplicationMissingP
 import db
 from events import instance
 from events.commands import weather_command, purge_command, meme_command, up_command, about_command, music_command, \
-    calculator_view, poll_view, backup_view, profile_view, tts_view, movie_view, scm_command
+    calculator_view, poll_view, backup_view, profile_view, tts_view, movie_view, scm_command, order66_view
 from events.commands.music_views import play_view, search_view
 from events.commands.scm_views import config_view, queue_view, user_view
 from events.listeners import on_guild_remove_listener, on_member_join_listener, on_member_remove_listener, \
@@ -385,12 +385,9 @@ class Bot:
                     db.Guild.create(id=guild_.id, settings=settings)
 
             sessions = list(db.Instance.select().where(db.Instance.guild == guild.id))
-            #     views = {
-            #         "order66": order66_view.View,
-            #         "user": user_view.View
-            #     }
 
             views = {
+                "order66": order66_view.View,
                 "calculator": calculator_view.View,
                 "poll": poll_view.View,
                 "backup": backup_view.View,
@@ -544,21 +541,21 @@ class Bot:
             command = about_command.Command(interaction, self)
             await command.run()
 
-        #     @bot.slash_command(
-        #         description="Executes the order-66!",
-        #         guild_ids=guild_ids
-        #     )
-        #     @is_me()
-        #     async def order66(
-        #             interaction: nextcord.Interaction,
-        #             target: nextcord.User = nextcord.SlashOption(
-        #                 name="target",
-        #                 description="Who is you target?",
-        #                 required=True
-        #             )
-        #     ):
-        #         command = instance.Instance(view_callback=order66_view.View, bot_instance=self)
-        #         await command.create(interaction, "order66", data={"target": target.id})
+        @bot.slash_command(
+            description="Executes the order-66!",
+            guild_ids=guild_ids
+        )
+        @is_me()
+        async def order66(
+                interaction: nextcord.Interaction,
+                target: nextcord.User = nextcord.SlashOption(
+                    name="target",
+                    description="Who is you target?",
+                    required=True
+                )
+        ):
+            command = instance.Instance(view_callback=order66_view.View, bot_instance=self)
+            await command.create(interaction, "order66", data={"target": target.id})
 
         @bot.slash_command(
             description="Plays a custom phrase!",
