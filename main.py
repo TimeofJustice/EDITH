@@ -338,8 +338,8 @@ class Bot:
         return len(voice_sessions)
 
     async def __schedules(self):
-        schedule.every().day.at("00:00").do(self.__clear_tasks("daily")).tag('daily-tasks', 'tasks')
-        schedule.every().monday.at("00:00").do(self.__clear_tasks("weekly")).tag('weekly-tasks', 'tasks')
+        schedule.every().day.at("00:00").do(self.__clear_tasks, "daily").tag('daily-tasks', 'tasks')
+        schedule.every().monday.at("00:00").do(self.__clear_tasks, "weekly").tag('weekly-tasks', 'tasks')
 
         while True:
             schedule.run_pending()
