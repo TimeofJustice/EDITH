@@ -1,5 +1,6 @@
 import nextcord
 
+import db
 from events import command
 
 
@@ -9,12 +10,10 @@ class Command(command.Command):
 
     async def run(self):
         if self.__data["command"] == "default":
-            guild_settings = self.__mysql.select(table="guilds",
-                                                 colms="settings",
-                                                 clause=f"WHERE guilds.id={self.__guild.id}")[0]
+            guild = db.Guild.get_or_none(id=self.__guild.id)
 
-            self.__mysql.update(table="settings", value=f"default_role='{self.__data['role'].id}'",
-                                clause=f"WHERE id='{guild_settings['settings']}'")
+            guild.settings.default_role = self.__data['role'].id
+            guild.settings.save()
 
             embed = nextcord.Embed(
                 description=f"Default role is now active!",
@@ -38,21 +37,19 @@ class Command(command.Command):
                 NotificationsModal(self.__guild, self.__data, self.__bot_instance)
             )
         elif self.__data["command"] == "disable":
-            guild_settings = self.__mysql.select(table="guilds",
-                                                 colms="settings",
-                                                 clause=f"WHERE guilds.id={self.__guild.id}")[0]
+            guild = db.Guild.get_or_none(id=self.__guild.id)
 
             if self.__data["method"] == "notifications":
-                self.__mysql.update(table="settings", value="msg_channel=Null",
-                                    clause=f"WHERE id='{guild_settings['settings']}'")
+                guild.settings.msg_channel = None
+                guild.settings.save()
 
                 embed = nextcord.Embed(
                     description=f"Notifications are now disabled!",
                     colour=nextcord.Colour.red()
                 )
             else:
-                self.__mysql.update(table="settings", value="default_role=Null",
-                                    clause=f"WHERE id='{guild_settings['settings']}'")
+                guild.settings.default_role = None
+                guild.settings.save()
 
                 embed = nextcord.Embed(
                     description=f"Default role is now disabled!",
@@ -66,19 +63,15 @@ class Command(command.Command):
 
             await self.__interaction.send(embed=embed, ephemeral=True)
         elif self.__data["command"] == "show":
-            guild_settings = self.__mysql.select(table="guilds",
-                                                 colms="settings",
-                                                 clause=f"WHERE guilds.id={self.__guild.id}")[0]
-            settings = self.__mysql.select(table="settings", colms="default_role, welcome_msg, leave_msg, msg_channel",
-                                           clause=f"WHERE id='{guild_settings['settings']}'")[0]
+            guild = db.Guild.get_or_none(id=self.__guild.id)
 
-            role_id = settings["default_role"]
+            role_id = guild.settings.default_role
             if role_id is not None:
                 role = self.__guild.get_role(int(role_id))
             else:
                 role = None
 
-            channel_id = settings["msg_channel"]
+            channel_id = guild.settings.msg_channel
             if channel_id is not None:
                 channel = self.__guild.get_channel(int(channel_id))
             else:
@@ -102,11 +95,11 @@ class Command(command.Command):
                     inline=False
                 )
 
-            if (settings["welcome_msg"] is not None or settings["leave_msg"] is not None) and channel is not None:
+            if (guild.settings.welcome_msg is not None or guild.settings.leave_msg is not None) and channel is not None:
                 embed.add_field(
                     name="Notifications",
-                    value=f"Join-Message: `{settings['welcome_msg']}`\n"
-                          f"Leave-Message: `{settings['leave_msg']}`\n"
+                    value=f"Join-Message: `{guild.settings.welcome_msg}`\n"
+                          f"Leave-Message: `{guild.settings.leave_msg}`\n"
                           f"Message-Channel: **#{channel.name}** ({channel.id})",
                     inline=False
                 )
@@ -147,16 +140,12 @@ class NotificationsModal(nextcord.ui.Modal):
         self.add_item(self.__leave)
 
     async def callback(self, interaction: nextcord.Interaction):
-        guild_settings = self.__mysql.select(table="guilds",
-                                             colms="settings",
-                                             clause=f"WHERE guilds.id={self.__guild.id}")[0]
+        guild = db.Guild.get_or_none(id=self.__guild.id)
 
-        self.__mysql.update(table="settings", value=f"welcome_msg='{self.__join.value}'",
-                            clause=f"WHERE id='{guild_settings['settings']}'")
-        self.__mysql.update(table="settings", value=f"leave_msg='{self.__leave.value}'",
-                            clause=f"WHERE id='{guild_settings['settings']}'")
-        self.__mysql.update(table="settings", value=f"msg_channel='{self.__data['channel'].id}'",
-                            clause=f"WHERE id='{guild_settings['settings']}'")
+        guild.settings.welcome_msg = self.__join.value
+        guild.settings.leave_msg = self.__leave.value
+        guild.settings.msg_channel = self.__data['channel'].id
+        guild.settings.save()
 
         embed = nextcord.Embed(
             description=f"Notifications are now active!",
