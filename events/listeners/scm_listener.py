@@ -151,9 +151,9 @@ class Listener(events.listener.Listener):
             await config_channel.delete()
             await category.delete()
 
-            db.SCMRoom.delete().where(db.SCMRoom.id == category.id).execute()
             db.SCMRoomRole.delete().where(db.SCMRoomRole.room == category.id).execute()
             db.SCMUser.delete().where(db.SCMUser.room == category.id).execute()
+            db.SCMRoom.delete().where(db.SCMRoom.id == category.id).execute()
             db.Instance.delete().where(db.Instance.channel_id == text_channel.id).execute()
             db.Instance.delete().where(db.Instance.channel_id == config_channel.id).execute()
 

@@ -31,7 +31,7 @@ class View(view.View):
         self.add_item(self.__type_button)
 
         category = self.__channel.category
-        room_data = self.__mysql.select(table="scm_rooms", colms="*", clause=f"WHERE id={category.id}")[0]
+        room = db.SCMRoom.get_or_none(id=category.id)
 
         embed = nextcord.Embed(
             description=f"This is your config-terminal for your S.C.M-Room!",
@@ -45,11 +45,10 @@ class View(view.View):
             inline=False
         )
 
-        role_datas = self.__mysql.select(table="scm_roles", colms="*", clause=f"WHERE guild_id={self.__guild.id}")
-        roles = [[self.__guild.get_role(role["id"]), role["emoji"]] for role in role_datas]
-        allowed_role_datas = self.__mysql.select(table="scm_room_roles", colms="*",
-                                                 clause=f"WHERE category_id={category.id}")
-        allowed_roles = [self.__guild.get_role(role["role_id"]) for role in allowed_role_datas]
+        role_datas = list(db.SCMRole.select().where(db.SCMRole.guild == self.__guild.id))
+        roles = [[self.__guild.get_role(role.id), role.emoji] for role in role_datas]
+        allowed_role_datas = list(db.SCMRoomRole.select().where(db.SCMRoomRole.room == category.id))
+        allowed_roles = [self.__guild.get_role(allowed_role.role.id) for allowed_role in allowed_role_datas]
         allowed_roles = [role for role in roles if role[0] in allowed_roles]
         removed_roles = [role for role in roles if role not in allowed_roles]
 
@@ -80,7 +79,7 @@ class View(view.View):
             inline=True
         )
 
-        if room_data["permanent"] == 0:
+        if not room.is_permanent:
             embed.add_field(
                 name="Roomtype",
                 value=f"🕒 Temporary",
@@ -93,24 +92,23 @@ class View(view.View):
                 inline=True
             )
 
-        scm_users = self.__mysql.select(table="scm_users", colms="*", clause=f"WHERE category_id={category.id}")
+        scm_users = list(db.SCMUser.select().where(db.SCMUser.room == category.id))
         invited_users = []
         blocked_users = []
         admin_users = []
 
         for user_data in scm_users:
-            user = self.__guild.get_member(int(user_data["user_id"]))
+            user = self.__guild.get_member(int(user_data.user.id))
 
             if user is None:
-                self.__mysql.delete(table="scm_users",
-                                    clause=f"WHERE category_id={category.id} and user_id={user_data['user_id']}")
+                user_data.delete_instance()
                 continue
 
-            if user_data["status"] == "admin":
+            if user_data.status == "admin":
                 admin_users.append(user)
-            elif user_data["status"] == "invited":
+            elif user_data.status == "invited":
                 invited_users.append(user)
-            elif user_data["status"] == "blocked":
+            elif user_data.status == "blocked":
                 blocked_users.append(user)
 
         invited_str = ""
@@ -175,15 +173,14 @@ class View(view.View):
 
             if 0 < len(self.__dropdown.values) and self.__dropdown.values[0] != "None":
                 roles = [self.__guild.get_role(int(role_id)) for role_id in self.__dropdown.values]
-                role_datas = self.__mysql.select(table="scm_room_roles", colms="role_id",
-                                                 clause=f"WHERE category_id={category.id}")
 
                 for role in roles:
-                    if {"role_id": role.id} not in role_datas:
-                        room_data = self.__mysql.select(table="scm_rooms", colms="channels, message_id",
-                                                        clause=f"WHERE id={self.__instance_data['room_id']}")[0]
+                    role_data = db.SCMRoomRole.get_or_none(room=category.id, role=role.id)
 
-                        channels = json.loads(room_data["channels"])
+                    if not role_data:
+                        room = db.SCMRoom.get_or_none(id=category.id)
+
+                        channels = json.loads(room.channels)
                         text_channel = self.__guild.get_channel(int(channels["text_channel"]))
                         voice_channel = self.__guild.get_channel(int(channels["voice_channel"]))
                         queue_channel = self.__guild.get_channel(int(channels["queue_channel"]))
@@ -203,8 +200,7 @@ class View(view.View):
                         queue_overwrites.update({role: permissions.SCM.Queue.Blocked()})
                         await queue_channel.edit(overwrites=queue_overwrites)
 
-                        self.__mysql.insert(table="scm_room_roles", colms="(role_id, category_id, guild_id)",
-                                            values=(role.id, category.id, self.__guild.id))
+                        db.SCMRoomRole.create(role=role.id, room=category.id)
 
                 await self.init()
 
@@ -216,15 +212,14 @@ class View(view.View):
 
             if 0 < len(self.__dropdown.values) and self.__dropdown.values[0] != "None":
                 roles = [self.__guild.get_role(int(role_id)) for role_id in self.__dropdown.values]
-                role_datas = self.__mysql.select(table="scm_room_roles", colms="role_id",
-                                                 clause=f"WHERE category_id={category.id}")
 
                 for role in roles:
-                    if {"role_id": role.id} in role_datas:
-                        room_data = self.__mysql.select(table="scm_rooms", colms="channels, message_id",
-                                                        clause=f"WHERE id={self.__instance_data['room_id']}")[0]
+                    role_data = db.SCMRoomRole.get_or_none(room=category.id, role=role.id)
 
-                        channels = json.loads(room_data["channels"])
+                    if role_data:
+                        room = db.SCMRoom.get_or_none(id=category.id)
+
+                        channels = json.loads(room.channels)
                         text_channel = self.__guild.get_channel(int(channels["text_channel"]))
                         voice_channel = self.__guild.get_channel(int(channels["voice_channel"]))
                         queue_channel = self.__guild.get_channel(int(channels["queue_channel"]))
@@ -244,8 +239,7 @@ class View(view.View):
                         queue_overwrites.pop(role)
                         await queue_channel.edit(overwrites=queue_overwrites)
 
-                        self.__mysql.delete(table="scm_room_roles",
-                                            clause=f"WHERE category_id={category.id} and role_id={role.id}")
+                        role_data.delete_instance()
 
                 await self.init()
 
@@ -255,21 +249,20 @@ class View(view.View):
         if self.__is_admin(interaction):
             category = self.__channel.category
 
-            room_data = self.__mysql.select(table="scm_rooms", colms="permanent",
-                                            clause=f"WHERE id={category.id}")[0]
-            room_datas = self.__mysql.select(table="scm_rooms", colms="permanent",
-                                             clause=f"WHERE guild_id={self.__guild.id} "
-                                                    f"and owner_id={self.__author.id} "
-                                                    f"and permanent=1")
+            room = db.SCMRoom.get_or_none(id=category.id)
 
-            if room_data["permanent"] == 0 and len(room_datas) < 2:
-                self.__mysql.update(table="scm_rooms", value="permanent=1",
-                                    clause=f"WHERE id={category.id}")
+            rooms = list(db.SCMRoom.select().where(db.SCMRoom.guild == self.__guild.id,
+                                                   db.SCMRoom.user == self.__author.id,
+                                                   db.SCMRoom.is_permanent == True))
+
+            if not room.is_permanent and len(rooms) < 2:
+                room.is_permanent = True
+                room.save()
 
                 await self.init()
-            elif room_data["permanent"] == 1:
-                self.__mysql.update(table="scm_rooms", value="permanent=0",
-                                    clause=f"WHERE id={category.id}")
+            elif room.is_permanent:
+                room.is_permanent = False
+                room.save()
 
                 await self.init()
 
@@ -292,27 +285,24 @@ class View(view.View):
         return args
 
     async def __delete_room(self, category: nextcord.CategoryChannel):
-        room_data = self.__mysql.select(table="scm_rooms", colms="channels, permanent",
-                                        clause=f"WHERE id={category.id}")[0]
+        room = db.SCMRoom.get_or_none(id=category.id)
 
-        channels = json.loads(room_data["channels"])
+        channels = json.loads(room.channels)
         config_channel = self.__guild.get_channel(channels["config_channel"])
         text_channel = self.__guild.get_channel(channels["text_channel"])
         voice_channel = self.__guild.get_channel(channels["voice_channel"])
         queue_channel = self.__guild.get_channel(channels["queue_channel"])
 
-        if room_data["permanent"] == 0 and len(voice_channel.members) == 0:
+        if room.is_permanent == 0 and len(voice_channel.members) == 0:
             await queue_channel.delete()
             await voice_channel.delete()
             await text_channel.delete()
             await config_channel.delete()
             await category.delete()
 
-            self.__mysql.delete(table="scm_rooms", clause=f"WHERE id={category.id}")
-            self.__mysql.delete(table="scm_room_roles", clause=f"WHERE category_id={category.id}")
-            self.__mysql.delete(table="scm_users", clause=f"WHERE category_id={category.id}")
-            self.__mysql.delete(table="instances", clause=f"WHERE channel_id={text_channel.id}")
-            self.__mysql.delete(table="instances", clause=f"WHERE channel_id={config_channel.id}")
+            db.SCMRoomRole.delete().where(db.SCMRoomRole.room == category.id).execute()
+            db.SCMUser.delete().where(db.SCMUser.room == category.id).execute()
+            db.SCMRoom.delete().where(db.SCMRoom.id == category.id).execute()
             db.Instance.delete().where(db.Instance.channel_id == text_channel.id).execute()
             db.Instance.delete().where(db.Instance.channel_id == config_channel.id).execute()
 
@@ -320,8 +310,8 @@ class View(view.View):
         user = interaction.user
         room_id = self.__channel.category.id
 
-        admin = db.SCMUser.get_or_none(id=user.id, room=room_id, status="admin")
-        owner = db.SCMUser.get_or_none(id=user.id, room=room_id, status="owner")
+        admin = db.SCMUser.get_or_none(user=user.id, room=room_id, status="admin")
+        owner = db.SCMUser.get_or_none(user=user.id, room=room_id, status="owner")
 
         if admin or owner:
             return True
@@ -333,7 +323,7 @@ class Dropdown(nextcord.ui.Select):
     def __init__(self, guild):
         options = []
 
-        roles = list(db.SCMRole.select().where(db.SCMRoom.guild == guild.id))
+        roles = list(db.SCMRole.select().where(db.SCMRole.guild == guild.id))
         max_roles = 1
 
         if len(roles) == 0:

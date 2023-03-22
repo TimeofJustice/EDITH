@@ -110,7 +110,7 @@ class View(view.View):
 
             embed.add_field(
                 name="\u200b",
-                value="\u200b",
+                value="ㅤ"*22,
                 inline=False
             )
 

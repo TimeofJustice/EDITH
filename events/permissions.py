@@ -99,5 +99,6 @@ class SCM:
         class Blocked(nextcord.PermissionOverwrite):
             def __init__(self):
                 super().__init__(
-                    connect=False
+                    connect=False,
+                    view_channel=False,
                 )

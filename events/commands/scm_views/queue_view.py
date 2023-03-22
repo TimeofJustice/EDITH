@@ -56,10 +56,9 @@ class View(view.View):
         if self.__is_admin(interaction):
             category = self.__channel.category
 
-            room_data = self.__mysql.select(table="scm_rooms", colms="channels, message_id",
-                                            clause=f"WHERE id={self.__instance_data['room_id']}")[0]
+            room = db.SCMRoom.get_or_none(id=self.__instance_data['room_id'])
 
-            channels = json.loads(room_data["channels"])
+            channels = json.loads(room.channels)
             text_channel = self.__guild.get_channel(int(channels["text_channel"]))
             voice_channel = self.__guild.get_channel(int(channels["voice_channel"]))
             queue_channel = self.__guild.get_channel(int(channels["queue_channel"]))
@@ -93,24 +92,22 @@ class View(view.View):
 
             await self.__message.edit(content="", embed=embed, view=None, delete_after=5)
 
-            self.__mysql.insert(table="scm_users", colms="(user_id, category_id, guild_id, status)",
-                                values=(self.__author.id, category.id, self.__guild.id, "invited"))
+            db.SCMUser.create(user=self.__author.id, room=category.id, guild=self.__guild.id, status="invited")
 
             db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
             await self.__author.move_to(voice_channel)
 
-            config_message = self.__bot_instance.get_instance(room_data["message_id"])
+            config_message = self.__bot_instance.get_instance(room.instance.id)
             await config_message.reload()
 
         return args
 
     async def __callback_voice(self, interaction: nextcord.Interaction, args):
         if self.__is_admin(interaction):
-            room_data = self.__mysql.select(table="scm_rooms", colms="channels",
-                                            clause=f"WHERE id={self.__instance_data['room_id']}")[0]
+            room = db.SCMRoom.get_or_none(id=self.__instance_data['room_id'])
 
-            channels = json.loads(room_data["channels"])
+            channels = json.loads(room.channels)
 
             voice_channel = self.__guild.get_channel(int(channels["voice_channel"]))
 
@@ -124,10 +121,9 @@ class View(view.View):
         if self.__is_admin(interaction):
             category = self.__channel.category
 
-            room_data = self.__mysql.select(table="scm_rooms", colms="channels, message_id",
-                                            clause=f"WHERE id={self.__instance_data['room_id']}")[0]
+            room = db.SCMRoom.get_or_none(id=self.__instance_data['room_id'])
 
-            channels = json.loads(room_data["channels"])
+            channels = json.loads(room.channels)
             config_channel = self.__guild.get_channel(int(channels["config_channel"]))
             text_channel = self.__guild.get_channel(int(channels["text_channel"]))
             voice_channel = self.__guild.get_channel(int(channels["voice_channel"]))
@@ -167,14 +163,13 @@ class View(view.View):
 
             await self.__message.edit(content="", embed=embed, view=None, delete_after=5)
 
-            self.__mysql.insert(table="scm_users", colms="(user_id, category_id, guild_id, status)",
-                                values=(self.__author.id, category.id, self.__guild.id, "blocked"))
+            db.SCMUser.create(user=self.__author.id, room=category.id, guild=self.__guild.id, status="blocked")
 
             db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
             await self.__author.move_to(None)
 
-            config_message = self.__bot_instance.get_instance(room_data["message_id"])
+            config_message = self.__bot_instance.get_instance(room.instance.id)
             await config_message.reload()
 
         return args
@@ -183,8 +178,8 @@ class View(view.View):
         user = interaction.user
         room_id = self.__channel.category.id
 
-        admin = db.SCMUser.get_or_none(id=user.id, room=room_id, status="admin")
-        owner = db.SCMUser.get_or_none(id=user.id, room=room_id, status="owner")
+        admin = db.SCMUser.get_or_none(user=user.id, room=room_id, status="admin")
+        owner = db.SCMUser.get_or_none(user=user.id, room=room_id, status="owner")
 
         if admin or owner:
             return True

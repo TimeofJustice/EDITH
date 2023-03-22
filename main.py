@@ -15,8 +15,9 @@ from nextcord.ext.application_checks import has_permissions, ApplicationMissingP
 import db
 from events import instance
 from events.commands import weather_command, purge_command, meme_command, up_command, about_command, music_command, \
-    calculator_view, poll_view, backup_view, profile_view, tts_view, movie_view
+    calculator_view, poll_view, backup_view, profile_view, tts_view, movie_view, scm_command
 from events.commands.music_views import play_view, search_view
+from events.commands.scm_views import config_view, queue_view, user_view
 from events.listeners import on_guild_remove_listener, on_member_join_listener, on_member_remove_listener, \
     on_message_listener, on_raw_message_delete_listener, on_voice_state_update_listener
 
@@ -385,11 +386,7 @@ class Bot:
 
             sessions = list(db.Instance.select().where(db.Instance.guild == guild.id))
             #     views = {
-            #         "profile": profile_view.View,
             #         "order66": order66_view.View,
-            #         "queue": queue_view.View,
-            #         "config": config_view.View,
-            #         "movie": movie_view.View,
             #         "user": user_view.View
             #     }
 
@@ -401,7 +398,10 @@ class Bot:
                 "profile": profile_view.View,
                 "movie": movie_view.View,
                 "status": play_view.View,
-                "search": search_view.View
+                "search": search_view.View,
+                "config": config_view.View,
+                "queue": queue_view.View,
+                "user": user_view.View
             }
             start = datetime.now()
 
@@ -658,88 +658,88 @@ class Bot:
             command = music_command.Command(interaction, self, {"command": "status"})
             await command.run()
 
-    #     @bot.slash_command(
-    #         guild_ids=guild_ids
-    #     )
-    #     async def scm(
-    #             interaction: nextcord.Interaction
-    #     ):
-    #         pass
-    #
-    #     @scm.subcommand(
-    #         description="Activates or deactivates the S.C.M-System!"
-    #     )
-    #     @has_permissions(administrator=True)
-    #     async def setup(
-    #             interaction: nextcord.Interaction,
-    #             method: str = nextcord.SlashOption(
-    #                 name="method",
-    #                 description="Do you want to add or remove a role?",
-    #                 choices={"activate": "activate", "deactivate": "deactivate"},
-    #                 required=True
-    #             )
-    #     ):
-    #         command = scm_command.Command(interaction, self, {"command": "setup", "method": method})
-    #         await command.run()
-    #
-    #     @scm.subcommand(
-    #         description="Adds or removes a role to the S.C.M-System!"
-    #     )
-    #     @has_permissions(administrator=True)
-    #     async def role(
-    #             interaction: nextcord.Interaction,
-    #             method: str = nextcord.SlashOption(
-    #                 name="method",
-    #                 description="Do you want to add or remove a role?",
-    #                 choices={"add": "add", "remove": "remove"},
-    #                 required=True
-    #             ),
-    #             role: nextcord.Role = nextcord.SlashOption(
-    #                 name="role",
-    #                 description="Which role do you want to add or remove?",
-    #                 required=True
-    #             )
-    #     ):
-    #         command = scm_command.Command(interaction, self, {"command": "role", "method": method, "role": role})
-    #         await command.run()
-    #
-    #     @scm.subcommand(
-    #         description="Opens the user-interface for your S.C.M-Room!"
-    #     )
-    #     async def user(
-    #             interaction: nextcord.Interaction,
-    #             target: nextcord.User = nextcord.SlashOption(
-    #                 name="user",
-    #                 description="Which user do you want to configure?",
-    #                 required=True
-    #             )
-    #     ):
-    #         command = scm_command.Command(interaction, self, {"command": "user", "user": target})
-    #         await command.run()
-    #
-    #     @scm.subcommand(
-    #         description="Opens the rename-interface for your S.C.M-Room!"
-    #     )
-    #     async def rename(
-    #             interaction: nextcord.Interaction,
-    #             target: str = nextcord.SlashOption(
-    #                 name="target",
-    #                 description="What do you want to rename?",
-    #                 choices={"voice-channel": "voice", "text-channel": "text", "category-channel": "category"},
-    #                 required=True
-    #             ),
-    #     ):
-    #         command = scm_command.Command(interaction, self, {"command": "rename", "target": target})
-    #         await command.run()
-    #
-    #     @bot.slash_command(
-    #         guild_ids=guild_ids
-    #     )
-    #     async def settings(
-    #             interaction: nextcord.Interaction
-    #     ):
-    #         pass
-    #
+        @bot.slash_command(
+            guild_ids=guild_ids
+        )
+        async def scm(
+                interaction: nextcord.Interaction
+        ):
+            pass
+
+        @scm.subcommand(
+            description="Activates or deactivates the S.C.M-System!"
+        )
+        @has_permissions(administrator=True)
+        async def setup(
+                interaction: nextcord.Interaction,
+                method: str = nextcord.SlashOption(
+                    name="method",
+                    description="Do you want to add or remove a role?",
+                    choices={"activate": "activate", "deactivate": "deactivate"},
+                    required=True
+                )
+        ):
+            command = scm_command.Command(interaction, self, {"command": "setup", "method": method})
+            await command.run()
+
+        @scm.subcommand(
+            description="Adds or removes a role to the S.C.M-System!"
+        )
+        @has_permissions(administrator=True)
+        async def role(
+                interaction: nextcord.Interaction,
+                method: str = nextcord.SlashOption(
+                    name="method",
+                    description="Do you want to add or remove a role?",
+                    choices={"add": "add", "remove": "remove"},
+                    required=True
+                ),
+                role: nextcord.Role = nextcord.SlashOption(
+                    name="role",
+                    description="Which role do you want to add or remove?",
+                    required=True
+                )
+        ):
+            command = scm_command.Command(interaction, self, {"command": "role", "method": method, "role": role})
+            await command.run()
+
+        @scm.subcommand(
+            description="Opens the user-interface for your S.C.M-Room!"
+        )
+        async def user(
+                interaction: nextcord.Interaction,
+                target: nextcord.User = nextcord.SlashOption(
+                    name="user",
+                    description="Which user do you want to configure?",
+                    required=True
+                )
+        ):
+            command = scm_command.Command(interaction, self, {"command": "user", "user": target})
+            await command.run()
+
+        @scm.subcommand(
+            description="Opens the rename-interface for your S.C.M-Room!"
+        )
+        async def rename(
+                interaction: nextcord.Interaction,
+                target: str = nextcord.SlashOption(
+                    name="target",
+                    description="What do you want to rename?",
+                    choices={"voice-channel": "voice", "text-channel": "text", "category-channel": "category"},
+                    required=True
+                ),
+        ):
+            command = scm_command.Command(interaction, self, {"command": "rename", "target": target})
+            await command.run()
+
+        @bot.slash_command(
+            guild_ids=guild_ids
+        )
+        async def settings(
+                interaction: nextcord.Interaction
+        ):
+            pass
+
     #     @settings.subcommand(
     #         description="Sets the default role for new members!"
     #     )
