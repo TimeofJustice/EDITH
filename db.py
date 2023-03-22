@@ -1,9 +1,8 @@
-import json
 from datetime import datetime
 
 from peewee import *
 
-db = SqliteDatabase('edith.db')
+db = SqliteDatabase('data/edith.db')
 # db = MySQLConnectorDatabase('edith', host='localhost', user='E.D.I.T.H', password='&fEvzV86)UMHt:J$')
 
 

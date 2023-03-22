@@ -26,7 +26,7 @@ from events.listeners import on_guild_remove_listener, on_member_join_listener, 
 class Bot:
     def __init__(self):
         config = configparser.ConfigParser()
-        config.read('config.ini')
+        config.read('data/config.ini')
 
         if config["DEFAULT"]["dev_mode"] == "True":
             print(f"{Fore.RED}Der Bot befindet sich im Developer Modus.{Style.RESET_ALL}")
