@@ -19,26 +19,43 @@ from events.commands import weather_command, purge_command, meme_command, up_com
     logging_command, settings_command, animal_command
 from events.commands.music_views import play_view, search_view
 from events.commands.scm_views import config_view, queue_view, user_view
+from events.instance import Instance
 from events.listeners import on_guild_remove_listener, on_member_join_listener, on_member_remove_listener, \
     on_message_listener, on_raw_message_delete_listener, on_voice_state_update_listener
 
 
 class Bot:
+    """
+    A class representing a bot instance.
+    """
+
     def __init__(self):
+        self.__setup_config()
+        self.__setup_bot()
+
+    def __setup_config(self):
+        """
+        Set up the bot configuration.
+        """
         config = configparser.ConfigParser()
         config.read('data/config.ini')
 
-        if config["DEFAULT"]["dev_mode"] == "True":
-            print(f"{Fore.RED}Der Bot befindet sich im Developer Modus.{Style.RESET_ALL}")
-            self.__token = config["DEFAULT"]["test_token"]
-        else:
-            self.__token = config["DEFAULT"]["main_token"]
+        dev_mode = config["DEFAULT"]["dev_mode"] == "True"
+        self.__token = config["DEFAULT"]["test_token"] if dev_mode else config["DEFAULT"]["main_token"]
 
+        if dev_mode:
+            print(f"{Fore.RED}Der Bot befindet sich im Developer Modus.{Style.RESET_ALL}")
+
+        self.__owner_id = 243747656470495233
+
+    def __setup_bot(self):
+        """
+        Set up the bot instance.
+        """
         bot_intents = nextcord.Intents.all()
         self.__bot = commands.Bot(intents=bot_intents)
         self.__is_already_running = False
         self.__started_at = datetime.now()
-        self.__owner_id = 243747656470495233
         self.__instances = {}
 
         self.__init_events()
@@ -46,43 +63,78 @@ class Bot:
 
         self.__bot.run(self.__token)
 
-    def get_instance(self, key):
+    def get_instance(self, key: str):
+        """
+        Get an instance by key.
+
+        :param key: The key of the instance.
+        :return: The instance.
+        """
         return self.__instances.get(key)
 
-    def add_instance(self, key, instance):
-        self.__instances.update({key: instance})
+    def add_instance(self, key: str, instance: Instance):
+        """
+        Add an instance to the bot.
 
-    def remove_instance(self, key):
-        self.__instances.pop(key)
+        :param key: The key of the instance.
+        :param instance: The instance to add.
+        """
+        self.__instances[key] = instance
+
+    def remove_instance(self, key: str):
+        """
+        Remove an instance from the bot.
+
+        :param key: The key of the instance to remove.
+        """
+        if key in self.__instances:
+            del self.__instances[key]
 
     def get_bot(self):
+        """
+        Get the bot instance.
+
+        :return: The bot instance.
+        """
         return self.__bot
 
     @staticmethod
     def get_version():
-        result = list(Path(".").rglob("*.*"))
-        dates = []
-        for x in result:
-            if not str(x).__contains__(".log"):
-                dates.append(datetime.fromtimestamp(
-                    os.path.getmtime(os.getcwd() + "/" + str(x))
-                ).strftime('%Y.%m.%d'))
-        dates.sort()
-        dates.reverse()
+        """
+        Get the latest version of the bot.
 
-        return dates[0]
+        :return: The latest version of the bot.
+        """
+        files = [f for f in Path(".").rglob("*.*") if not str(f).endswith(".log")]
+        dates = [datetime.fromtimestamp(os.path.getmtime(str(f))).strftime('%Y.%m.%d') for f in files]
+        return sorted(dates, reverse=True)[0]
 
     def get_running_time(self):
+        """
+        Get the running time of the bot.
+
+        :return: The running time of the bot.
+        """
         current_time = datetime.now()
         dif = round((current_time - self.__started_at).total_seconds())
-        if round(dif / 60) > 60:
-            return str(round(dif / 60 / 60)) + " Hours"
-        if round(dif) > 60:
-            return str(round(dif / 60)) + " Minutes"
+
+        hours = dif // 3600
+        minutes = (dif % 3600) // 60
+        seconds = dif % 60
+
+        if hours:
+            return f"{hours} {'Hour' if hours == 1 else 'Hours'}"
+        elif minutes:
+            return f"{minutes} {'Minute' if minutes == 1 else 'Minutes'}"
         else:
-            return str(round(dif)) + " Seconds"
+            return f"{seconds} {'Second' if seconds == 1 else 'Seconds'}"
 
     def create_user_profile(self, member: nextcord.Member):
+        """
+        Creates a user profile for the given member if it doesn't already exist.
+
+        :param member: A discord.Member object representing the user to create a profile for.
+        """
         user = db.User.get_or_none(db.User.id == member.id)
 
         if not user:
@@ -90,112 +142,110 @@ class Bot:
             daily_prog = db.User.DailyProgress.create()
             weekly_prog = db.User.WeeklyProgress.create()
 
-            db.User.create(id=member.id, daily_progress=daily_prog, weekly_progress=weekly_prog, statistics=statistics)
+            db.User.create(
+                id=member.id,
+                daily_progress=daily_prog,
+                weekly_progress=weekly_prog,
+                statistics=statistics
+            )
 
         self.__get_tasks()
 
-    def __clear_dailies(self):
+    def __clear_tasks(self, task_type: str):
+        """
+        Delete daily or weekly tasks and progress for all users.
+
+        :param task_type: The type of tasks to delete. Can be 'daily' or 'weekly'.
+        """
         users = list(db.User.select())
 
         for user in users:
-            dailies = user.daily_tasks
+            tasks = getattr(user, f"{task_type}_tasks")
+            progress = getattr(user, f"{task_type}_progress")
 
-            user.daily_tasks.clear()
-            user.daily_progress.time_in_voice = 0
-            user.daily_progress.messages_send = 0
-            user.daily_progress.movies_guessed = 0
+            # Clear tasks and reset progress
+            tasks.clear()
+            progress.time_in_voice = 0
+            progress.messages_send = 0
+            progress.movies_guessed = 0
 
-            for daily in dailies:
-                daily.delete_instance()
+            # Delete all tasks
+            for task in tasks:
+                task.delete_instance()
 
+            # Save changes to user and progress
             user.save()
-            user.daily_progress.save()
+            progress.save()
 
-        self.__get_tasks()
-
-    def __clear_weeklies(self):
-        users = list(db.User.select())
-
-        for user in users:
-            weeklies = user.weekly_tasks
-
-            user.weekly_tasks.clear()
-            user.weekly_progress.time_in_voice = 0
-            user.weekly_progress.messages_send = 0
-            user.weekly_progress.movies_guessed = 0
-
-            for weekly in weeklies:
-                weekly.delete_instance()
-
-            user.save()
-            user.weekly_progress.save()
-
+        # Refresh tasks
         self.__get_tasks()
 
     def __get_tasks(self):
+        """
+        Get daily and weekly tasks for all users.
+
+        Generates new tasks for users who have no tasks.
+
+        Assign tasks randomly from a list of possible tasks.
+
+        If a task requires guessing movies, it checks how many movies the user has already guessed and chooses a new task if necessary.
+
+        Save changes to the database.
+        """
+        # Get all users
         users = list(db.User.select())
 
+        # Load possible tasks from JSON file
+        with open('data/json/tasks.json', encoding='utf-8') as f:
+            tasks = json.load(f)
+
+        possible_tasks = {
+            "daily": tasks["dailies"],
+            "weekly": tasks["weeklies"]
+        }
+
+        # Load movie levels from JSON file
+        with open('data/json/movies.json', encoding='utf-8') as f:
+            levels = json.load(f)
+
         for user in users:
-            daily_tasks = user.daily_tasks
-            weekly_tasks = user.weekly_tasks
+            for task_type in ['daily', 'weekly']:
+                tasks = getattr(user, f"{task_type}_tasks")
 
-            with open('data/json/tasks.json', encoding='utf-8') as f:
-                tasks = json.load(f)
+                # Generate new tasks if user has none
+                if len(tasks) == 0:
+                    for x in range(0, 2):
+                        task = random.choice(possible_tasks[task_type])
 
-            possible_dailies = tasks["dailies"]
-            possible_weeklies = tasks["weeklies"]
+                        # Load movie levels from JSON file
+                        with open('data/json/movies.json', encoding='utf-8') as f:
+                            levels = json.load(f)
 
-            if len(daily_tasks) == 0:
-                for x in range(0, 2):
-                    daily_task = random.choice(possible_dailies)
+                        # Check how many movies the user has already guessed
+                        guessed_movies = len(db.MovieGuess.select().where(db.MovieGuess.user == user).execute())
 
-                    with open('data/json/movies.json', encoding='utf-8') as f:
-                        levels = json.load(f)
+                        # If task requires guessing movies, choose a new task if user has already guessed enough movies
+                        while task["accomplish_type"] == "movle_game":
+                            if task["amount"] < (len(levels) - guessed_movies):
+                                break
 
-                    guessed_movies = len(db.MovieGuess.select().where(db.MovieGuess.user == user).execute())
+                            possible_tasks[task_type].remove(task)
+                            task = random.choice(possible_tasks[task_type])
 
-                    while daily_task["accomplish_type"] == "movle_game":
-                        if daily_task["amount"] < (len(levels) - guessed_movies):
-                            break
+                        # Add new task to user's tasks
+                        task_model = getattr(db.User, f"{task_type.title()}Task")
+                        tasks.add(
+                            task_model.create(
+                                description=task["description"],
+                                accomplish_type=task["accomplish_type"],
+                                amount=task["amount"],
+                                xp=task["xp"])
+                        )
+                        possible_tasks[task_type].remove(task)
 
-                        possible_dailies.remove(daily_task)
-                        daily_task = random.choice(possible_dailies)
-
-                    user.daily_tasks.add(
-                        db.User.DailyTask.create(
-                            description=daily_task["description"],
-                            accomplish_type=daily_task["accomplish_type"],
-                            amount=daily_task["amount"],
-                            xp=daily_task["xp"])
-                    )
-                    possible_dailies.remove(daily_task)
-
-            if len(weekly_tasks) == 0:
-                for x in range(0, 2):
-                    weekly_task = random.choice(possible_weeklies)
-
-                    with open('data/json/movies.json', encoding='utf-8') as f:
-                        levels = json.load(f)
-
-                    guessed_movies = len(db.MovieGuess.select().where(db.MovieGuess.user == user).execute())
-
-                    while weekly_task["accomplish_type"] == "movle_game":
-                        if weekly_task["amount"] < (len(levels) - guessed_movies):
-                            break
-
-                        possible_weeklies.remove(weekly_task)
-                        weekly_task = random.choice(possible_weeklies)
-
-                    user.weekly_tasks.add(
-                        db.User.WeeklyTask.create(
-                            description=weekly_task["description"],
-                            accomplish_type=weekly_task["accomplish_type"],
-                            amount=weekly_task["amount"],
-                            xp=weekly_task["xp"])
-                    )
-                    possible_weeklies.remove(weekly_task)
-
+            # Save changes to user
             user.save()
+            return self
 
     def check_user_progress(self, member: nextcord.Member):
         user_profile = db.User.get_or_none(id=member.id)
@@ -288,8 +338,8 @@ class Bot:
         return len(voice_sessions)
 
     async def __schedules(self):
-        schedule.every().day.at("00:00").do(self.__clear_dailies).tag('daily-tasks', 'tasks')
-        schedule.every().monday.at("00:00").do(self.__clear_weeklies).tag('weekly-tasks', 'tasks')
+        schedule.every().day.at("00:00").do(self.__clear_tasks("daily")).tag('daily-tasks', 'tasks')
+        schedule.every().monday.at("00:00").do(self.__clear_tasks("weekly")).tag('weekly-tasks', 'tasks')
 
         while True:
             schedule.run_pending()
