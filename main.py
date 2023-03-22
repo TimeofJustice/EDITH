@@ -15,7 +15,8 @@ from nextcord.ext.application_checks import has_permissions, ApplicationMissingP
 import db
 from events import instance
 from events.commands import weather_command, purge_command, meme_command, up_command, about_command, music_command, \
-    calculator_view, poll_view, backup_view, profile_view, tts_view, movie_view, scm_command, order66_view
+    calculator_view, poll_view, backup_view, profile_view, tts_view, movie_view, scm_command, order66_view, \
+    logging_command
 from events.commands.music_views import play_view, search_view
 from events.commands.scm_views import config_view, queue_view, user_view
 from events.listeners import on_guild_remove_listener, on_member_join_listener, on_member_remove_listener, \
@@ -792,21 +793,21 @@ class Bot:
     #     ):
     #         command = settings_command.Command(interaction, self, {"command": "show"})
     #         await command.run()
-    #
-    #     @settings.subcommand(
-    #         description="Activates the E.D.I.T.H. logging-tool!"
-    #     )
-    #     @has_permissions(administrator=True)
-    #     async def logging(
-    #             interaction: nextcord.Interaction,
-    #             level: int = nextcord.SlashOption(
-    #                 name="level",
-    #                 description="What level of logging do you want to use?",
-    #                 choices={"off": 0, "low": 1, "middle": 2, "high": 3, "highest": 4}
-    #             )
-    #     ):
-    #         command = logging_command.Command(interaction, self, {"level": level})
-    #         await command.run()
+    
+        @settings.subcommand(
+            description="Activates the E.D.I.T.H. logging-tool!"
+        )
+        @has_permissions(administrator=True)
+        async def logging(
+                interaction: nextcord.Interaction,
+                level: int = nextcord.SlashOption(
+                    name="level",
+                    description="What level of logging do you want to use?",
+                    choices={"off": 0, "low": 1, "middle": 2, "high": 3, "highest": 4}
+                )
+        ):
+            command = logging_command.Command(interaction, self, {"level": level})
+            await command.run()
 
         @purge.error
         @backup.error
