@@ -38,11 +38,11 @@ class Command(command.Command):
             else:
                 if self.__data["method"] == "activate":
                     category = await self.__guild.create_category(
-                        name="Smart Channel Manager"
+                        name="🔨 Smart Channel Manager"
                     )
                     db.CustomChannel.create(id=category.id, guild=self.__guild.id)
                     voice_channel = await self.__guild.create_voice_channel(
-                        name="S.C.M",
+                        name="🚧 Create a Channel",
                         category=category
                     )
                     db.CustomChannel.create(id=voice_channel.id, guild=self.__guild.id)

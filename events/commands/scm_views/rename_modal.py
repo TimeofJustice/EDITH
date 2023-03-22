@@ -1,4 +1,5 @@
 import json
+import random
 
 import nextcord
 
@@ -26,8 +27,13 @@ class Modal(nextcord.ui.Modal):
         category = self.__room
 
         if self.__data["target"] == "voice":
-            await voice_channel.edit(name=self.__name.value)
+            await voice_channel.edit(name="🔈 " + self.__name.value)
         elif self.__data["target"] == "text":
-            await text_channel.edit(name=self.__name.value)
+            await text_channel.edit(name="📜 " + self.__name.value)
         elif self.__data["target"] == "category":
-            await category.edit(name=self.__name.value)
+            with open('data/json/emojis.json', encoding='utf-8') as f:
+                emojis = json.load(f)
+
+            emoji = random.choice(emojis)
+
+            await category.edit(name=f"{emoji} " + self.__name.value)

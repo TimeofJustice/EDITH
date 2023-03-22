@@ -34,6 +34,8 @@ class View(view.View):
         user_datas = list(db.SCMUser.select().where(db.SCMUser.room == category.id, db.SCMUser.user == target.id))
         user_roles = [user_data.status for user_data in user_datas]
 
+        self.__bot_instance.create_user_profile(target)
+
         if not target.bot and "owner" not in user_roles:
             embed = nextcord.Embed(
                 description=f"What do you want to do with **{target.display_name}**?!",

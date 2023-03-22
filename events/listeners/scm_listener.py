@@ -1,5 +1,7 @@
 import asyncio
 import json
+import random
+
 import nextcord
 
 import db
@@ -69,27 +71,32 @@ class Listener(events.listener.Listener):
             self.__guild.default_role: permissions.SCM.Queue.Default()
         }
 
+        with open('data/json/emojis.json', encoding='utf-8') as f:
+            emojis = json.load(f)
+
+        emoji = random.choice(emojis)
+
         category = await self.__guild.create_category(
-            name=f"{member.name}'s Room (S.C.M)",
+            name=f"{emoji} {member.name}'s Room (S.C.M)",
             position=self.__scm_creator_room.category.position
         )
         config_channel = await self.__guild.create_text_channel(
-            name="Config",
+            name="🔨 Config",
             category=category,
             overwrites=config_overwrites
         )
         text_channel = await self.__guild.create_text_channel(
-            name=f"{member.name}'s Chat",
+            name=f"📜 {member.name}'s Chat",
             category=category,
             overwrites=text_overwrites
         )
         voice_channel = await self.__guild.create_voice_channel(
-            name=f"{member.name}'s Lounge",
+            name=f"🔈 {member.name}'s Lounge",
             category=category,
             overwrites=voice_overwrites
         )
         queue_channel = await self.__guild.create_voice_channel(
-            name="Queue",
+            name="⏰ Queue",
             category=category,
             overwrites=queue_overwrites
         )

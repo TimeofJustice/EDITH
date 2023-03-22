@@ -28,10 +28,10 @@ class Listener(events.listener.Listener):
 
         if (is_left or going_mute or after.afk) and not member.bot:
             db.VoiceSession.delete().where(db.VoiceSession.user == member.id,
-                                           db.VoiceSession.guild==guild.id).execute()
+                                           db.VoiceSession.guild == guild.id).execute()
 
         if (is_joined or going_un_mute or is_moved) and not member.bot and not after.afk and not is_muted:
-            db.VoiceSession.delete().where(db.VoiceSession.user==member.id).execute()
+            db.VoiceSession.delete().where(db.VoiceSession.user == member.id).execute()
 
             user_data = db.User.get_or_none(id=member.id)
             guild_data = db.Guild.get_or_none(id=guild.id)
@@ -52,7 +52,7 @@ class Listener(events.listener.Listener):
 
         if voice_session:
             if member.voice is None:
-                db.VoiceSession.delete().where(db.VoiceSession.user==member.id).execute()
+                db.VoiceSession.delete().where(db.VoiceSession.user == member.id).execute()
                 return schedule.CancelJob
             else:
                 voice_channel = member.voice.channel
