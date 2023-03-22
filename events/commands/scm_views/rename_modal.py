@@ -1,13 +1,13 @@
 import json
+import random
 
 import nextcord
 
-from mysql_bridge import Mysql
+import db
 
 
 class Modal(nextcord.ui.Modal):
     def __init__(self, room, guild, data, bot_instance):
-        self.__mysql = Mysql()
         self.__room = room
         self.__guild = guild
         self.__data = data
@@ -19,17 +19,21 @@ class Modal(nextcord.ui.Modal):
         self.add_item(self.__name)
 
     async def callback(self, interaction: nextcord.Interaction):
-        room_data = self.__mysql.select(table="scm_rooms", colms="channels, message_id",
-                                        clause=f"WHERE id={self.__room.id}")[0]
+        room = db.SCMRoom.get_or_none(id=self.__room.id)
 
-        channels = json.loads(room_data["channels"])
+        channels = json.loads(room.channels)
         text_channel = self.__guild.get_channel(int(channels["text_channel"]))
         voice_channel = self.__guild.get_channel(int(channels["voice_channel"]))
         category = self.__room
 
         if self.__data["target"] == "voice":
-            await voice_channel.edit(name=self.__name.value)
+            await voice_channel.edit(name="🔈 " + self.__name.value)
         elif self.__data["target"] == "text":
-            await text_channel.edit(name=self.__name.value)
+            await text_channel.edit(name="📜 " + self.__name.value)
         elif self.__data["target"] == "category":
-            await category.edit(name=self.__name.value)
+            with open('data/json/emojis.json', encoding='utf-8') as f:
+                emojis = json.load(f)
+
+            emoji = random.choice(emojis)
+
+            await category.edit(name=f"{emoji} " + self.__name.value)

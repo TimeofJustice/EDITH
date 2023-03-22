@@ -5,6 +5,7 @@ from sys import platform
 
 import nextcord
 
+import db
 from events import view
 from events.view import Button
 
@@ -26,8 +27,7 @@ class View(view.View):
         for voice_client in self.__bot.voice_clients:
             busy_guilds.append(voice_client.guild.id)
 
-        sessions = self.__mysql.select(table="instances", colms="*",
-                                       clause=f"WHERE guild_id={self.__guild.id} AND type='order66'")
+        sessions = list(db.Instance.select().where(db.Instance.guild == self.__guild.id, db.Instance.type == "order66"))
 
         if guild.id in busy_guilds or 1 < len(sessions):
             embed = nextcord.Embed(
@@ -43,7 +43,7 @@ class View(view.View):
                 await self.__message.edit(content="", embed=embed, view=None,
                                           file=nextcord.File(fp, 'order66-2.gif'))
 
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
             await self.__message.edit(delete_after=5)
 
@@ -66,7 +66,7 @@ class View(view.View):
                     await self.__message.edit(content="", embed=embed, view=None,
                                               file=nextcord.File(fp, 'order66-2.gif'))
 
-                self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+                db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
                 await self.__message.edit(delete_after=5)
 
@@ -81,8 +81,9 @@ class View(view.View):
             self.__instance_data["target"] = target.id
             self.__instance_data["origin_channel"] = start_channel.id
 
-            self.__mysql.update(table="instances", value=f"data='{json.dumps(self.__instance_data)}'",
-                                clause=f"WHERE message_id={self.__message.id}")
+            instance = db.Instance.get_or_none(id=self.__message.id)
+            instance.data = json.dumps(self.__instance_data)
+            instance.save()
 
             embed = nextcord.Embed(
                 title="Execute order-66!",
@@ -112,15 +113,14 @@ class View(view.View):
         while voice_client.is_playing():
             await asyncio.sleep(.5)
 
-            await voice_client.disconnect()
+        await voice_client.disconnect()
 
         channels = []
-        custom_channel_data = self.__mysql.select("custom_channels", colms="id",
-                                                  clause=" WHERE guild_id={}".format(guild.id))
+        custom_channel_datas = list(db.CustomChannel.select().where(db.CustomChannel.guild == guild.id))
 
         custom_channels = []
-        for custom_channel in custom_channel_data:
-            custom_channels.append(custom_channel["id"])
+        for custom_channel_data in custom_channel_datas:
+            custom_channels.append(custom_channel_data.id)
 
         for channel in guild.voice_channels:
             if channel.permissions_for(target) and channel.permissions_for(target).connect and \
@@ -129,12 +129,10 @@ class View(view.View):
                 channels.append(channel)
 
         next_channel = random.choice(channels)
-        session = self.__mysql.select(table="instances", colms="*",
-                                      clause=f"WHERE message_id={self.__message.id}")
+        session = db.Instance.get_or_none(id=self.__message.id)
 
-        while target.voice is not None and len(session) != 0:
-            session = self.__mysql.select(table="instances", colms="*",
-                                          clause=f"WHERE message_id={self.__message.id}")
+        while target.voice is not None and session:
+            session = db.Instance.get_or_none(id=self.__message.id)
 
             if next_channel not in channels:
                 channels.append(next_channel)
@@ -148,7 +146,7 @@ class View(view.View):
         if target.voice is not None:
             await target.move_to(start_channel)
 
-        self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+        db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
         await self.__message.edit(delete_after=10)
 
@@ -171,6 +169,6 @@ class View(view.View):
             with open('data/pics/order66-4.gif', 'rb') as fp:
                 await self.__message.edit(content="", embed=embed, view=None, file=nextcord.File(fp, 'order66-4.gif'))
 
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
         return args

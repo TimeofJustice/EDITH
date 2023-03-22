@@ -1,5 +1,6 @@
 import nextcord
 
+import db
 import events.listener
 
 
@@ -8,18 +9,18 @@ class Listener(events.listener.Listener):
         super().__init__(bot_instance, data)
 
     async def call(self, guild: nextcord.Guild):
-        guild_settings = self.__mysql.select(table="guilds",
-                                             colms="settings",
-                                             clause=f"WHERE guilds.id={guild.id}")[0]
+        guild = db.Guild.get_or_none(db.Guild.id == guild.id)
 
-        guild_settings_id = guild_settings["settings"]
+        db.CustomChannel.delete().where(db.CustomChannel.guild == guild).execute()
+        db.Instance.delete().where(db.Instance.guild == guild).execute()
+        db.SCMCreator.delete().where(db.SCMCreator.guild == guild).execute()
+        db.SCMRole.delete().where(db.SCMRole.guild == guild).execute()
+        rooms = db.SCMRoom.select().where(db.SCMRoom.guild == guild).execute()
+        db.SCMRoom.delete().where(db.SCMRoom.guild == guild).execute()
 
-        self.__mysql.delete(table="custom_channels", clause=f"WHERE guild_id={guild.id}")
-        self.__mysql.delete(table="guilds", clause=f"WHERE id={guild.id}")
-        self.__mysql.delete(table="instances", clause=f"WHERE guild_id={guild.id}")
-        self.__mysql.delete(table="scm_creators", clause=f"WHERE guild_id={guild.id}")
-        self.__mysql.delete(table="scm_roles", clause=f"WHERE guild_id={guild.id}")
-        self.__mysql.delete(table="scm_rooms", clause=f"WHERE guild_id={guild.id}")
-        self.__mysql.delete(table="scm_room_roles", clause=f"WHERE guild_id={guild.id}")
-        self.__mysql.delete(table="scm_users", clause=f"WHERE guild_id={guild.id}")
-        self.__mysql.delete(table="settings", clause=f"WHERE id='{guild_settings_id}'")
+        for room in rooms:
+            db.SCMRoomRole.delete().where(db.SCMRoomRole.room == room).execute()
+
+        db.SCMUser.delete().where(db.SCMUser.guild == guild).execute()
+        guild.delete_instance()
+        guild.settings.delete_instance()

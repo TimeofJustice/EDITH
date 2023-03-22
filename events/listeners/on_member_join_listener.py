@@ -1,5 +1,6 @@
 import nextcord
 
+import db
 import events.listener
 
 
@@ -9,32 +10,20 @@ class Listener(events.listener.Listener):
 
     async def call(self, member: nextcord.Member):
         guild = member.guild
+        guild_data = db.Guild.get_or_none(db.Guild.id == guild.id)
 
-        guild_settings = self.__mysql.select(table="guilds",
-                                             colms="settings",
-                                             clause=f"WHERE guilds.id={guild.id}")[0]
+        role_id = guild_data.settings.default_role
+        role = member.guild.get_role(int(role_id)) if role_id else None
 
-        settings = self.__mysql.select(table="settings", colms="default_role, welcome_msg, msg_channel",
-                                       clause=f"WHERE id='{guild_settings['settings']}'")[0]
+        channel_id = guild_data.settings.msg_channel
+        channel = member.guild.get_channel(int(channel_id)) if channel_id else None
 
-        role_id = settings["default_role"]
-        if role_id is not None:
-            role = guild.get_role(int(role_id))
-        else:
-            role = None
-
-        channel_id = settings["msg_channel"]
-        if channel_id is not None:
-            channel = guild.get_channel(int(channel_id))
-        else:
-            channel = None
-
-        if role is not None:
+        if role:
             await member.add_roles(role)
 
-        if channel is not None and settings["welcome_msg"] is not None:
+        if channel and guild_data.settings.welcome_msg:
             embed = nextcord.Embed(
-                description=settings["welcome_msg"]
+                description=guild_data.settings.welcome_msg
                 .replace("[member]", member.display_name)
                 .replace("[guild]", guild.name),
                 colour=nextcord.Colour.green()

@@ -2,8 +2,6 @@ import asyncio
 import configparser
 import json
 import random
-import sys
-import time
 from datetime import datetime
 import os
 from pathlib import Path
@@ -14,22 +12,21 @@ from nextcord.ext import commands
 from colorama import Style, Fore
 from nextcord.ext.application_checks import has_permissions, ApplicationMissingPermissions, check, has_role
 
+import db
 from events import instance
-from events.commands import calculator_view, order66_view, profile_view, poll_view, tts_view, backup_view, \
-    weather_command, purge_command, meme_command, up_command, about_command, logging_command, scm_command, movie_view, \
-    settings_command, music_command
+from events.commands import weather_command, purge_command, meme_command, up_command, about_command, music_command, \
+    calculator_view, poll_view, backup_view, profile_view, tts_view, movie_view, scm_command, order66_view, \
+    logging_command, settings_command, animal_command
 from events.commands.music_views import play_view, search_view
-from events.commands.scm_views import queue_view, config_view, user_view
-
-from events.listeners import on_message_listener, on_raw_message_delete_listener, on_voice_state_update_listener, \
-    on_member_join_listener, on_member_remove_listener, on_guild_remove_listener
-from mysql_bridge import Mysql
+from events.commands.scm_views import config_view, queue_view, user_view
+from events.listeners import on_guild_remove_listener, on_member_join_listener, on_member_remove_listener, \
+    on_message_listener, on_raw_message_delete_listener, on_voice_state_update_listener
 
 
 class Bot:
     def __init__(self):
         config = configparser.ConfigParser()
-        config.read('config.ini')
+        config.read('data/config.ini')
 
         if config["DEFAULT"]["dev_mode"] == "True":
             print(f"{Fore.RED}Der Bot befindet sich im Developer Modus.{Style.RESET_ALL}")
@@ -42,10 +39,8 @@ class Bot:
         self.__is_already_running = False
         self.__started_at = datetime.now()
         self.__owner_id = 243747656470495233
-        self.__mysql = Mysql()
         self.__instances = {}
 
-        self.__initiate_tables()
         self.__init_events()
         self.__init_commands()
 
@@ -87,140 +82,62 @@ class Bot:
         else:
             return str(round(dif)) + " Seconds"
 
-    def __initiate_tables(self):
-        mysql = self.__mysql
-
-        mysql.create_table(table="settings", colms="(id VARCHAR(255) PRIMARY KEY,"
-                                                   "welcome_msg VARCHAR(255),"
-                                                   "leave_msg VARCHAR(255),"
-                                                   "msg_channel BIGINT(255))")
-        mysql.add_colm(table="settings", colm="log_category", definition="BIGINT(255)", clause="AFTER msg_channel")
-        mysql.add_colm(table="settings", colm="messages_channel", definition="BIGINT(255)", clause="AFTER log_category")
-        mysql.add_colm(table="settings", colm="logging_level", definition="INT(255)",
-                       clause="DEFAULT (0) AFTER messages_channel")
-        mysql.add_colm(table="settings", colm="error_channel", definition="BIGINT(255)", clause="AFTER msg_channel")
-        mysql.add_colm(table="settings", colm="default_role", definition="BIGINT(255)", clause="AFTER error_channel")
-
-        mysql.create_table(table="guilds", colms="(id BIGINT(255) PRIMARY KEY,"
-                                                 "settings VARCHAR(255),"
-                                                 "FOREIGN KEY (settings) REFERENCES settings(id))")
-
-        mysql.create_table(table="instances", colms="(message_id BIGINT(255) PRIMARY KEY,"
-                                                    "author_id BIGINT(255) NOT NULL,"
-                                                    "channel_id BIGINT(255) NOT NULL,"
-                                                    "guild_id BIGINT(255) NOT NULL,"
-                                                    "type VARCHAR(255) NOT NULL,"
-                                                    "data TEXT)")
-
-        mysql.create_table(table="poll_submits", colms="(id VARCHAR(255) primary key,"
-                                                       "user_id BIGINT(255) not null,"
-                                                       "poll_id BIGINT(255) not null,"
-                                                       "FOREIGN KEY (poll_id) REFERENCES instances(message_id))")
-        mysql.add_colm(table="poll_submits", colm="answer_id", definition="BIGINT(255)", clause="AFTER poll_id")
-
-        mysql.create_table(table="custom_channels", colms="(id bigint(255) primary key,"
-                                                          "guild_id bigint(255) not null)")
-
-        mysql.create_table(table="backups", colms="(id VARCHAR(255) primary key)")
-        mysql.add_colm(table="backups", colm="creator_id", definition="BIGINT(255)", clause="AFTER id")
-        mysql.add_colm(table="backups", colm="guild_id", definition="BIGINT(255)", clause="AFTER creator_id")
-        mysql.add_colm(table="backups", colm="data", definition="TEXT", clause="AFTER creator_id")
-        mysql.add_colm(table="backups", colm="date", definition="datetime",
-                       clause="DEFAULT CURRENT_TIMESTAMP AFTER data")
-
-        mysql.create_table(table="scm_creators", colms="(id bigint(255) primary key,"
-                                                       "guild_id bigint(255) not null)")
-
-        mysql.create_table(table="scm_rooms", colms="(id bigint(255) primary key,"
-                                                    "guild_id bigint(255) not null,"
-                                                    "channels TEXT not null,"
-                                                    "owner_id bigint(255) not null,"
-                                                    "permanent tinyint(1) default 0)")
-        mysql.add_colm(table="scm_rooms", colm="message_id", definition="bigint(255)", clause="AFTER owner_id")
-
-        mysql.create_table(table="scm_roles", colms="(id bigint(255) primary key,"
-                                                    "guild_id bigint(255) not null,"
-                                                    "emoji varchar(255) not null)")
-
-        mysql.create_table(table="scm_users", colms="(id bigint(255) auto_increment primary key,"
-                                                    "user_id bigint(255) not null,"
-                                                    "category_id bigint(255) not null,"
-                                                    "guild_id bigint(255) not null,"
-                                                    "status varchar(255) not null)")
-
-        mysql.create_table(table="scm_room_roles", colms="(role_id bigint(255) not null,"
-                                                         "category_id bigint(255) not null,"
-                                                         "guild_id bigint(255) not null,"
-                                                         "primary key (role_id, category_id))")
-
-        mysql.create_table(table="movie_guessing", colms="(id bigint(255) auto_increment primary key,"
-                                                         "user_id bigint(255) not null,"
-                                                         "movie_id varchar(255) not null,"
-                                                         "clues int(255) not null)")
-
-        mysql.create_table(table="voice_sessions", colms="(member_id bigint(255) primary key,"
-                                                         "start datetime not null,"
-                                                         "guild_id bigint(255) not null)")
-
-        mysql.create_table(table="user_profiles", colms="(id bigint(255) primary key,"
-                                                        "tasks_daily text DEFAULT '[]',"
-                                                        "tasks_weekly text DEFAULT '[]',"
-                                                        "time_in_voice bigint(255) DEFAULT 0,"
-                                                        "voice_daily bigint(255) DEFAULT 0,"
-                                                        "voice_weekly bigint(255) DEFAULT 0,"
-                                                        "messages_send bigint(255) DEFAULT 0,"
-                                                        "messages_daily bigint(255) DEFAULT 0,"
-                                                        "messages_weekly bigint(255) DEFAULT 0,"
-                                                        "movle_daily bigint(255) DEFAULT 0,"
-                                                        "movle_weekly bigint(255) DEFAULT 0)")
-        mysql.add_colm(table="user_profiles", colm="xp", definition="bigint(255) DEFAULT 0", clause="AFTER id")
-
-        mysql.create_table(table="music_songs", colms="(id varchar(255) primary key,"
-                                                      "url varchar(255) not null,"
-                                                      "data TEXT DEFAULT '{}',"
-                                                      "guild_id bigint(255) not null,"
-                                                      "is_playing tinyint(1) default 0,"
-                                                      "is_skipped tinyint(1) default 0,"
-                                                      "added_by bigint(255) not null,"
-                                                      "added_at datetime default current_timestamp)")
-
-        mysql.create_table(table="music_instances", colms="(id bigint(255) primary key,"
-                                                          "owner_id bigint(255) not null,"
-                                                          "channel_id bigint(255) not null,"
-                                                          "currently_playing varchar(255) not null,"
-                                                          "FOREIGN KEY (currently_playing) REFERENCES music_songs(id))")
-
     def create_user_profile(self, member: nextcord.Member):
-        profiles = self.__mysql.select(table="user_profiles", colms="id")
+        user = db.User.get_or_none(db.User.id == member.id)
 
-        if {"id": member.id} not in profiles and not member.bot:
-            self.__mysql.insert(table="user_profiles", colms="(id)",
-                                values=(member.id,))
+        if not user:
+            statistics = db.User.Statistic.create()
+            daily_prog = db.User.DailyProgress.create()
+            weekly_prog = db.User.WeeklyProgress.create()
+
+            db.User.create(id=member.id, daily_progress=daily_prog, weekly_progress=weekly_prog, statistics=statistics)
 
         self.__get_tasks()
 
     def __clear_dailies(self):
-        self.__mysql.update(table="user_profiles", value="voice_daily=0")
-        self.__mysql.update(table="user_profiles", value="messages_daily=0")
-        self.__mysql.update(table="user_profiles", value="movle_daily=0")
-        self.__mysql.update(table="user_profiles", value="tasks_daily='[]'")
+        users = list(db.User.select())
+
+        for user in users:
+            dailies = user.daily_tasks
+
+            user.daily_tasks.clear()
+            user.daily_progress.time_in_voice = 0
+            user.daily_progress.messages_send = 0
+            user.daily_progress.movies_guessed = 0
+
+            for daily in dailies:
+                daily.delete_instance()
+
+            user.save()
+            user.daily_progress.save()
 
         self.__get_tasks()
 
     def __clear_weeklies(self):
-        self.__mysql.update(table="user_profiles", value="voice_weekly=0")
-        self.__mysql.update(table="user_profiles", value="messages_weekly=0")
-        self.__mysql.update(table="user_profiles", value="movle_weekly=0")
-        self.__mysql.update(table="user_profiles", value="tasks_weekly='[]'")
+        users = list(db.User.select())
+
+        for user in users:
+            weeklies = user.weekly_tasks
+
+            user.weekly_tasks.clear()
+            user.weekly_progress.time_in_voice = 0
+            user.weekly_progress.messages_send = 0
+            user.weekly_progress.movies_guessed = 0
+
+            for weekly in weeklies:
+                weekly.delete_instance()
+
+            user.save()
+            user.weekly_progress.save()
 
         self.__get_tasks()
 
     def __get_tasks(self):
-        profiles = self.__mysql.select(table="user_profiles", colms="*")
+        users = list(db.User.select())
 
-        for profile in profiles:
-            daily_tasks = json.loads(profile["tasks_daily"])
-            weekly_tasks = json.loads(profile["tasks_weekly"])
+        for user in users:
+            daily_tasks = user.daily_tasks
+            weekly_tasks = user.weekly_tasks
 
             with open('data/json/tasks.json', encoding='utf-8') as f:
                 tasks = json.load(f)
@@ -235,8 +152,7 @@ class Bot:
                     with open('data/json/movies.json', encoding='utf-8') as f:
                         levels = json.load(f)
 
-                    guessed_movies = len(self.__mysql.select(table="movie_guessing", colms="movie_id",
-                                                             clause=f"WHERE user_id={profile['id']}"))
+                    guessed_movies = len(db.MovieGuess.select().where(db.MovieGuess.user == user).execute())
 
                     while daily_task["accomplish_type"] == "movle_game":
                         if daily_task["amount"] < (len(levels) - guessed_movies):
@@ -245,7 +161,13 @@ class Bot:
                         possible_dailies.remove(daily_task)
                         daily_task = random.choice(possible_dailies)
 
-                    daily_tasks.append(daily_task)
+                    user.daily_tasks.add(
+                        db.User.DailyTask.create(
+                            description=daily_task["description"],
+                            accomplish_type=daily_task["accomplish_type"],
+                            amount=daily_task["amount"],
+                            xp=daily_task["xp"])
+                    )
                     possible_dailies.remove(daily_task)
 
             if len(weekly_tasks) == 0:
@@ -255,8 +177,7 @@ class Bot:
                     with open('data/json/movies.json', encoding='utf-8') as f:
                         levels = json.load(f)
 
-                    guessed_movies = len(self.__mysql.select(table="movie_guessing", colms="movie_id",
-                                                             clause=f"WHERE user_id={profile['id']}"))
+                    guessed_movies = len(db.MovieGuess.select().where(db.MovieGuess.user == user).execute())
 
                     while weekly_task["accomplish_type"] == "movle_game":
                         if weekly_task["amount"] < (len(levels) - guessed_movies):
@@ -265,71 +186,68 @@ class Bot:
                         possible_weeklies.remove(weekly_task)
                         weekly_task = random.choice(possible_weeklies)
 
-                    weekly_tasks.append(weekly_task)
+                    user.weekly_tasks.add(
+                        db.User.WeeklyTask.create(
+                            description=weekly_task["description"],
+                            accomplish_type=weekly_task["accomplish_type"],
+                            amount=weekly_task["amount"],
+                            xp=weekly_task["xp"])
+                    )
                     possible_weeklies.remove(weekly_task)
 
-            self.__mysql.update(table="user_profiles", value=f"tasks_daily='{json.dumps(daily_tasks)}'",
-                                clause=f"WHERE id={profile['id']}")
-            self.__mysql.update(table="user_profiles", value=f"tasks_weekly='{json.dumps(weekly_tasks)}'",
-                                clause=f"WHERE id={profile['id']}")
+            user.save()
 
     def check_user_progress(self, member: nextcord.Member):
-        user_profile = self.__mysql.select(table="user_profiles", colms="*",
-                                           clause=f"WHERE id={member.id}")[0]
+        user_profile = db.User.get_or_none(id=member.id)
 
-        daily_tasks = json.loads(user_profile["tasks_daily"])
-        weekly_tasks = json.loads(user_profile["tasks_weekly"])
+        daily_tasks = user_profile.daily_tasks
+        weekly_tasks = user_profile.weekly_tasks
 
         for daily_task in daily_tasks:
             progress = 0
 
-            if daily_task["accomplish_type"] == "minutes_in_voice":
-                progress = user_profile["voice_daily"]
-            elif daily_task["accomplish_type"] == "send_messages":
-                progress = user_profile["messages_daily"]
-            elif daily_task["accomplish_type"] == "movle_game":
-                progress = user_profile["movle_daily"]
+            if daily_task.accomplish_type == "minutes_in_voice":
+                progress = user_profile.daily_progress.time_in_voice
+            elif daily_task.accomplish_type == "send_messages":
+                progress = user_profile.daily_progress.messages_send
+            elif daily_task.accomplish_type == "movle_game":
+                progress = user_profile.daily_progress.movies_guessed
 
-            if daily_task["amount"] <= progress and not daily_task["completed"]:
-                daily_task["completed"] = True
-                self.__mysql.update(table="user_profiles", value=f"xp=xp+{daily_task['xp']}",
-                                    clause=f"WHERE id={member.id}")
+            if daily_task.amount <= progress and not daily_task.completed:
+                daily_task.completed = True
+
+                user_profile.xp += daily_task.xp
+                user_profile.save()
+                daily_task.save()
 
         for weekly_task in weekly_tasks:
             progress = 0
 
-            if weekly_task["accomplish_type"] == "minutes_in_voice":
-                progress = user_profile["voice_daily"]
-            elif weekly_task["accomplish_type"] == "send_messages":
-                progress = user_profile["messages_daily"]
-            elif weekly_task["accomplish_type"] == "movle_game":
-                progress = user_profile["movle_daily"]
+            if weekly_task.accomplish_type == "minutes_in_voice":
+                progress = user_profile.weekly_progress.time_in_voice
+            elif weekly_task.accomplish_type == "send_messages":
+                progress = user_profile.weekly_progress.messages_send
+            elif weekly_task.accomplish_type == "movle_game":
+                progress = user_profile.weekly_progress.movies_guessed
 
-            if weekly_task["amount"] <= progress and not weekly_task["completed"]:
-                weekly_task["completed"] = True
-                self.__mysql.update(table="user_profiles", value=f"xp=xp+{weekly_task['xp']}",
-                                    clause=f"WHERE id={member.id}")
+            if weekly_task.amount <= progress and not weekly_task.completed:
+                weekly_task.completed = True
 
-        self.__mysql.update(table="user_profiles", value=f"tasks_daily='{json.dumps(daily_tasks)}'",
-                            clause=f"WHERE id={member.id}")
-        self.__mysql.update(table="user_profiles", value=f"tasks_weekly='{json.dumps(weekly_tasks)}'",
-                            clause=f"WHERE id={member.id}")
+                user_profile.xp += weekly_task.xp
+                user_profile.save()
+                weekly_task.save()
 
     async def __initiate_instances(self, sessions, views):
-        mysql = self.__mysql
-
         for guild in self.__bot.guilds:
             bot_client = guild.voice_client
 
             if bot_client is not None:
                 await bot_client.disconnect(force=True)
 
-        start = datetime.now()
-
         methods = []
 
         for session in sessions:
-            methods.append(self.__reinit_session(session, views, mysql))
+            methods.append(self.__reinit_session(session, views))
 
         await asyncio.gather(
             *methods
@@ -337,38 +255,35 @@ class Bot:
 
         return len(sessions)
 
-    async def __reinit_session(self, session, views, mysql):
+    async def __reinit_session(self, session, views):
         try:
-            command = instance.Instance(view_callback=views[session["type"]], bot_instance=self)
+            command = instance.Instance(view_callback=views[session.type], bot_instance=self)
             await command.initiate(session)
         except Exception as e:
-            print(f"In '__initiate_instances' ({session['message_id']}):\n{e}")
-            mysql.delete(table="poll_submits", clause=f"WHERE poll_id={session['message_id']}")
-            mysql.delete(table="instances", clause=f"WHERE message_id={session['message_id']}")
+            print(f"In '__initiate_instances' ({session.id}):\n{e}")
+            db.PollVote.delete().where(db.PollVote.poll_id == session.id).execute()
+            db.Instance.delete().where(db.Instance.id == session.id).execute()
 
             try:
-                guild = self.__bot.get_guild(session["guild_id"])
-                channel = guild.get_channel(session["channel_id"])
-                message = await channel.fetch_message(session["message_id"])
+                guild = self.__bot.get_guild(session.guild.id)
+                channel = guild.get_channel(session.channel_id)
+                message = await channel.fetch_message(session.id)
 
                 await message.delete()
             except Exception as e:
                 print(e)
 
     async def __reinit_voice_sessions(self, guild: nextcord.Guild):
-        mysql = self.__mysql
-
-        voice_sessions = mysql.select(table="voice_sessions", colms="*",
-                                      clause=f"WHERE guild_id={guild.id}")
+        voice_sessions = list(db.VoiceSession.select().where(db.VoiceSession.guild == guild.id))
 
         for voice_session in voice_sessions:
-            member = guild.get_member(int(voice_session["member_id"]))
+            member = guild.get_member(int(voice_session.user.id))
 
             if member is not None:
                 listener = on_voice_state_update_listener.Listener(self)
                 listener.init_worker_thread(member, guild)
             else:
-                mysql.delete(table="voice_sessions", clause=f"WHERE member_id={voice_session['member_id']}")
+                voice_session.delete_instance()
 
         return len(voice_sessions)
 
@@ -382,19 +297,18 @@ class Bot:
 
     def __init_events(self):
         bot = self.__bot
-        mysql = self.__mysql
 
         @bot.event
         async def on_ready():
             if not self.__is_already_running:
                 await self.__bot.sync_all_application_commands()
 
-                guilds_data = mysql.select(table="guilds", colms="id")
+                guilds = list(db.Guild.select())
                 guild_ids = []
                 __now = datetime.now()
 
-                for guild_data in guilds_data:
-                    guild_ids.append(guild_data["id"])
+                for guild in guilds:
+                    guild_ids.append(guild.id)
 
                 print("(BOT) " + bot.user.name + " ist bereit [{}]".format(__now.strftime("%d/%m/%Y, %H:%M:%S")))
                 print("(BOT) Vorhandene Guilden ({}):".format(len(bot.guilds)))
@@ -460,36 +374,33 @@ class Bot:
 
         @bot.event
         async def on_guild_available(guild: nextcord.Guild):
-            guilds_data = mysql.select(table="guilds", colms="id")
+            guilds = list(db.Guild.select())
             guild_ids = []
 
-            for guild_data in guilds_data:
-                guild_ids.append(guild_data["id"])
+            for guild_ in guilds:
+                guild_ids.append(guild_.id)
 
             for guild_ in bot.guilds:
                 if guild_.id not in guild_ids:
-                    uuid = mysql.get_uuid(table="settings", colm="id")
-                    mysql.insert(table="settings", colms="(id)", values=(uuid,))
+                    settings = db.Guild.Setting.create()
+                    db.Guild.create(id=guild_.id, settings=settings)
 
-                    mysql.insert(table="guilds", colms="(id, settings)", values=(guild_.id, uuid))
+            sessions = list(db.Instance.select().where(db.Instance.guild == guild.id))
 
-            sessions = mysql.select(table="instances", colms="*",
-                                    clause=f"WHERE guild_id={guild.id}")
             views = {
+                "order66": order66_view.View,
                 "calculator": calculator_view.View,
                 "poll": poll_view.View,
-                "profile": profile_view.View,
                 "backup": backup_view.View,
-                "order66": order66_view.View,
                 "tts": tts_view.View,
-                "queue": queue_view.View,
-                "config": config_view.View,
+                "profile": profile_view.View,
                 "movie": movie_view.View,
-                "user": user_view.View,
                 "status": play_view.View,
-                "search": search_view.View
+                "search": search_view.View,
+                "config": config_view.View,
+                "queue": queue_view.View,
+                "user": user_view.View
             }
-
             start = datetime.now()
 
             [message_session, voice_sessions] = await asyncio.gather(
@@ -497,23 +408,21 @@ class Bot:
                 self.__reinit_voice_sessions(guild)
             )
 
-            print(f"{Fore.GREEN}Es wurden {message_session + voice_sessions} Instanzen für {guild} in "
+            print(f"{Fore.GREEN}Es wurden {message_session + voice_sessions} Instanzen für {guild.name} in "
                   f"{(datetime.now() - start).seconds}s geladen.{Style.RESET_ALL}")
 
         @bot.event
         async def on_guild_join(guild: nextcord.Guild):
-            guilds_data = mysql.select(table="guilds", colms="id")
+            guilds = list(db.Guild.select())
             guild_ids = []
 
-            for guild_data in guilds_data:
-                guild_ids.append(guild_data["id"])
+            for guild in guilds:
+                guild_ids.append(guild.id)
 
             for guild in bot.guilds:
                 if guild.id not in guild_ids:
-                    uuid = mysql.get_uuid(table="settings", colm="id")
-                    mysql.insert(table="settings", colms="(id)", values=(uuid,))
-
-                    mysql.insert(table="guilds", colms="(id, settings)", values=(guild.id, uuid))
+                    settings = db.Guild.Setting.create()
+                    guild = db.Guild.create(id=guild.id, settings=settings)
 
         @bot.event
         async def on_guild_remove(guild: nextcord.Guild):
@@ -522,13 +431,12 @@ class Bot:
 
     def __init_commands(self):
         bot = self.__bot
-        mysql = self.__mysql
 
-        guilds_data = mysql.select(table="guilds", colms="id")
+        guilds = list(db.Guild.select())
         guild_ids = []
 
-        for guild_data in guilds_data:
-            guild_ids.append(guild_data["id"])
+        for guild in guilds:
+            guild_ids.append(guild.id)
 
         def is_me():
             def predicate(interaction: nextcord.Interaction):
@@ -573,6 +481,23 @@ class Bot:
                 )
         ):
             command = weather_command.Command(interaction, self, {"city": city})
+            await command.run()
+
+        @bot.slash_command(
+            description="Shows a random image and fact!",
+            guild_ids=guild_ids
+        )
+        async def animal(
+                interaction: nextcord.Interaction,
+                target: str = nextcord.SlashOption(
+                    name="animal",
+                    description="What animal do you want to see?",
+                    choices=["bird", "cat", "dog", "fox", "kangaroo", "koala", "panda", "raccoon", "red_panda"],
+                    default="raccoon",
+                    required=True
+                )
+        ):
+            command = animal_command.Command(interaction, self, {"animal": target})
             await command.run()
 
         @bot.slash_command(
@@ -902,6 +827,7 @@ class Bot:
             await command.run()
 
         @purge.error
+        @backup.error
         @logging.error
         @order66.error
         @role.error

@@ -1,5 +1,7 @@
 import json
 import nextcord
+
+import db
 from events import command, view, permissions
 from events.view import Button
 
@@ -29,16 +31,18 @@ class View(view.View):
     async def init(self, **kwargs):
         category = self.__channel.category
         target = self.__guild.get_member(int(self.__instance_data["user"]))
-        user_data = self.__mysql.select(table="scm_users", colms="status",
-                                        clause=f"WHERE category_id={category.id} and user_id={target.id}")
+        user_datas = list(db.SCMUser.select().where(db.SCMUser.room == category.id, db.SCMUser.user == target.id))
+        user_roles = [user_data.status for user_data in user_datas]
 
-        if not target.bot and {"status": "owner"} not in user_data:
+        self.__bot_instance.create_user_profile(target)
+
+        if not target.bot and "owner" not in user_roles:
             embed = nextcord.Embed(
                 description=f"What do you want to do with **{target.display_name}**?!",
                 colour=nextcord.Colour.purple()
             )
 
-            if {"status": "blocked"} in user_data:
+            if "blocked" in user_roles:
                 embed.add_field(
                     name="✅ Unblock",
                     value="Unblocks the user!",
@@ -47,7 +51,7 @@ class View(view.View):
 
                 self.add_item(self.__unblock_button)
             else:
-                if 0 < len(user_data):
+                if 0 < len(user_roles):
                     embed.add_field(
                         name="📤 Remove",
                         value="Revokes access to the room!",
@@ -72,7 +76,7 @@ class View(view.View):
 
                 self.add_item(self.__block_button)
 
-                if {"status": "admin"} in user_data:
+                if "admin" in user_roles:
                     embed.add_field(
                         name="⬇ Demote",
                         value="Revokes access to the config!",
@@ -99,7 +103,7 @@ class View(view.View):
             )
 
             del_after = None
-        elif {"status": "owner"} in user_data:
+        elif "owner" in user_roles:
             embed = nextcord.Embed(
                 description=f"This is the room from **{self.__author.display_name}**!",
                 colour=nextcord.Colour.orange()
@@ -113,7 +117,7 @@ class View(view.View):
             )
 
             del_after = 5
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
         else:
             embed = nextcord.Embed(
                 description=f"**{self.__author.display_name}** is a bot!",
@@ -128,7 +132,7 @@ class View(view.View):
             )
 
             del_after = 5
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
         await self.__message.edit(content="", embed=embed, view=self, delete_after=del_after)
 
@@ -137,10 +141,9 @@ class View(view.View):
             target = self.__guild.get_member(int(self.__instance_data["user"]))
             category = self.__channel.category
 
-            room_data = self.__mysql.select(table="scm_rooms", colms="channels, message_id",
-                                            clause=f"WHERE id={self.__instance_data['room_id']}")[0]
+            room = db.SCMRoom.get_or_none(id=self.__instance_data['room_id'])
 
-            channels = json.loads(room_data["channels"])
+            channels = json.loads(room.channels)
             text_channel = self.__guild.get_channel(int(channels["text_channel"]))
             voice_channel = self.__guild.get_channel(int(channels["voice_channel"]))
             queue_channel = self.__guild.get_channel(int(channels["queue_channel"]))
@@ -174,11 +177,10 @@ class View(view.View):
 
             await self.__message.edit(content="", embed=embed, view=None, delete_after=5)
 
-            self.__mysql.insert(table="scm_users", colms="(user_id, category_id, guild_id, status)",
-                                values=(target.id, category.id, self.__guild.id, "invited"))
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.SCMUser.create(user=target.id, room=category.id, guild=self.__guild.id, status="invited")
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
-            config_message = self.__bot_instance.get_instance(room_data["message_id"])
+            config_message = self.__bot_instance.get_instance(room.instance.id)
             await config_message.reload()
 
         return args
@@ -188,10 +190,9 @@ class View(view.View):
             target = self.__guild.get_member(int(self.__instance_data["user"]))
             category = self.__channel.category
 
-            room_data = self.__mysql.select(table="scm_rooms", colms="channels, message_id",
-                                            clause=f"WHERE id={self.__instance_data['room_id']}")[0]
+            room = db.SCMRoom.get_or_none(id=self.__instance_data['room_id'])
 
-            channels = json.loads(room_data["channels"])
+            channels = json.loads(room.channels)
             config_channel = self.__guild.get_channel(int(channels["config_channel"]))
             text_channel = self.__guild.get_channel(int(channels["text_channel"]))
             voice_channel = self.__guild.get_channel(int(channels["voice_channel"]))
@@ -231,11 +232,10 @@ class View(view.View):
 
             await self.__message.edit(content="", embed=embed, view=None, delete_after=5)
 
-            self.__mysql.delete(table="scm_users",
-                                clause=f"WHERE user_id={target.id} and category_id={category.id}")
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.SCMUser.delete().where(db.SCMUser.user == target.id, db.SCMUser.room == category.id).execute()
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
-            config_message = self.__bot_instance.get_instance(room_data["message_id"])
+            config_message = self.__bot_instance.get_instance(room.instance.id)
             await config_message.reload()
 
         return args
@@ -245,10 +245,9 @@ class View(view.View):
             target = self.__guild.get_member(int(self.__instance_data["user"]))
             category = self.__channel.category
 
-            room_data = self.__mysql.select(table="scm_rooms", colms="channels, message_id",
-                                            clause=f"WHERE id={self.__instance_data['room_id']}")[0]
+            room = db.SCMRoom.get_or_none(id=self.__instance_data['room_id'])
 
-            channels = json.loads(room_data["channels"])
+            channels = json.loads(room.channels)
             config_channel = self.__guild.get_channel(int(channels["config_channel"]))
             text_channel = self.__guild.get_channel(int(channels["text_channel"]))
             voice_channel = self.__guild.get_channel(int(channels["voice_channel"]))
@@ -288,16 +287,14 @@ class View(view.View):
 
             await self.__message.edit(content="", embed=embed, view=None, delete_after=5)
 
-            self.__mysql.delete(table="scm_users",
-                                clause=f"WHERE user_id={target.id} and category_id={category.id}")
-            self.__mysql.insert(table="scm_users", colms="(user_id, category_id, guild_id, status)",
-                                values=(target.id, category.id, self.__guild.id, "blocked"))
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.SCMUser.delete().where(db.SCMUser.user == target.id, db.SCMUser.room == category.id).execute()
+            db.SCMUser.create(user=target.id, room=category.id, guild=self.__guild.id, status="blocked")
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
-            config_message = self.__bot_instance.get_instance(room_data["message_id"])
+            config_message = self.__bot_instance.get_instance(room.instance.id)
             await config_message.reload()
 
-            if target.voice.channel.category == category:
+            if target.voice and target.voice.channel.category == category:
                 await target.move_to(None)
 
         return args
@@ -307,10 +304,9 @@ class View(view.View):
             target = self.__guild.get_member(int(self.__instance_data["user"]))
             category = self.__channel.category
 
-            room_data = self.__mysql.select(table="scm_rooms", colms="channels, message_id",
-                                            clause=f"WHERE id={self.__instance_data['room_id']}")[0]
+            room = db.SCMRoom.get_or_none(id=self.__instance_data['room_id'])
 
-            channels = json.loads(room_data["channels"])
+            channels = json.loads(room.channels)
             config_channel = self.__guild.get_channel(int(channels["config_channel"]))
             text_channel = self.__guild.get_channel(int(channels["text_channel"]))
             voice_channel = self.__guild.get_channel(int(channels["voice_channel"]))
@@ -345,11 +341,14 @@ class View(view.View):
 
             await self.__message.edit(content="", embed=embed, view=None, delete_after=5)
 
-            self.__mysql.delete(table="scm_users",
-                                clause=f"WHERE user_id={target.id} and category_id={category.id} and status='blocked'")
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.SCMUser.delete().where(
+                db.SCMUser.user == target.id,
+                db.SCMUser.room == category.id,
+                db.SCMUser.status == "blocked"
+            ).execute()
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
-            config_message = self.__bot_instance.get_instance(room_data["message_id"])
+            config_message = self.__bot_instance.get_instance(room.instance.id)
             await config_message.reload()
 
         return args
@@ -359,10 +358,9 @@ class View(view.View):
             target = self.__guild.get_member(int(self.__instance_data["user"]))
             category = self.__channel.category
 
-            room_data = self.__mysql.select(table="scm_rooms", colms="channels, message_id",
-                                            clause=f"WHERE id={self.__instance_data['room_id']}")[0]
+            room = db.SCMRoom.get_or_none(id=self.__instance_data['room_id'])
 
-            channels = json.loads(room_data["channels"])
+            channels = json.loads(room.channels)
             config_channel = self.__guild.get_channel(int(channels["config_channel"]))
             text_channel = self.__guild.get_channel(int(channels["text_channel"]))
             voice_channel = self.__guild.get_channel(int(channels["voice_channel"]))
@@ -402,13 +400,15 @@ class View(view.View):
 
             await self.__message.edit(content="", embed=embed, view=None, delete_after=5)
 
-            self.__mysql.insert(table="scm_users", colms="(user_id, category_id, guild_id, status)",
-                                values=(target.id, category.id, self.__guild.id, "admin"))
-            self.__mysql.insert(table="scm_users", colms="(user_id, category_id, guild_id, status)",
-                                values=(target.id, category.id, self.__guild.id, "invited"))
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.SCMUser.delete().where(
+                db.SCMUser.user == target.id, db.SCMUser.room == category.id, db.SCMUser.status == "invited"
+            ).execute()
+            db.SCMUser.create(user=target.id, room=category.id, guild=self.__guild.id, status="invited")
+            db.SCMUser.create(user=target.id, room=category.id, guild=self.__guild.id, status="admin")
 
-            config_message = self.__bot_instance.get_instance(room_data["message_id"])
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
+
+            config_message = self.__bot_instance.get_instance(room.instance.id)
             await config_message.reload()
 
         return args
@@ -418,10 +418,9 @@ class View(view.View):
             target = self.__guild.get_member(int(self.__instance_data["user"]))
             category = self.__channel.category
 
-            room_data = self.__mysql.select(table="scm_rooms", colms="channels, message_id",
-                                            clause=f"WHERE id={self.__instance_data['room_id']}")[0]
+            room = db.SCMRoom.get_or_none(id=self.__instance_data['room_id'])
 
-            channels = json.loads(room_data["channels"])
+            channels = json.loads(room.channels)
             config_channel = self.__guild.get_channel(int(channels["config_channel"]))
 
             config_overwrites = {}
@@ -443,11 +442,12 @@ class View(view.View):
 
             await self.__message.edit(content="", embed=embed, view=None, delete_after=5)
 
-            self.__mysql.delete(table="scm_users",
-                                clause=f"WHERE user_id={target.id} and category_id={category.id} and status='admin'")
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.SCMUser.delete().where(
+                db.SCMUser.user == target.id, db.SCMUser.room == category.id, db.SCMUser.status == "admin"
+            ).execute()
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
-            config_message = self.__bot_instance.get_instance(room_data["message_id"])
+            config_message = self.__bot_instance.get_instance(room.instance.id)
             await config_message.reload()
 
         return args
@@ -455,6 +455,6 @@ class View(view.View):
     async def __callback_cancel(self, interaction: nextcord.Interaction, args):
         if self.__is_author(interaction, exception_owner=True):
             await self.__message.delete()
-            self.__mysql.delete(table="instances", clause=f"WHERE message_id={self.__message.id}")
+            db.Instance.delete().where(db.Instance.id == self.__message.id).execute()
 
         return args

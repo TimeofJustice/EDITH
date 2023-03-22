@@ -4,6 +4,7 @@ import json
 import nextcord
 import yt_dlp
 
+import db
 from events import command, instance
 from events.commands.music_views import play_view, search_view
 
@@ -15,9 +16,9 @@ class Command(command.Command):
     async def run(self):
         if self.__data["command"] == "play":
             if self.__author.voice is not None:
-                music_instance = self.__mysql.select(table="music_instances", colms="*",
-                                                     clause=f"WHERE id={self.__guild.id}")
-                if len(music_instance) == 0:
+                music_instance = db.MusicInstance.get_or_none(guild=self.__guild.id)
+
+                if not music_instance:
                     busy_guilds = []
 
                     for voice_client in self.__bot.voice_clients:
@@ -41,8 +42,7 @@ class Command(command.Command):
                         await self.__interaction.send(embed=embed, ephemeral=True)
                         return
                 else:
-                    music_instance = music_instance[0]
-                    instance_channel = self.__guild.get_channel(int(music_instance["channel_id"]))
+                    instance_channel = self.__guild.get_channel(int(music_instance.channel_id))
 
                 if self.__author in instance_channel.members:
                     url = self.__data["link"].replace(" ", "")
@@ -76,8 +76,7 @@ class Command(command.Command):
                                 await command_instance.create(self.__interaction, "status",
                                                               data={"method": "play"})
                             else:
-                                queue = self.__mysql.select(table="music_songs", colms="*",
-                                                            clause=f"WHERE guild_id={self.__guild.id}")
+                                queue = list(db.MusicSong.select().where(db.MusicSong.guild == self.__guild.id))
 
                                 embed = nextcord.Embed(
                                     description=f"The song was **added** to the queue, "
@@ -95,7 +94,8 @@ class Command(command.Command):
                                 await self.__interaction.send(embed=embed, ephemeral=True)
                         else:
                             raise RuntimeError
-                    except:
+                    except Exception as e:
+                        print(e)
                         embed = nextcord.Embed(
                             description=f"This URL couldn't be processed!",
                             colour=nextcord.Colour.red()
@@ -148,28 +148,24 @@ class Command(command.Command):
                                           data={"method": "status"})
 
     async def __play(self, link, channel: nextcord.VoiceChannel, song_data=None):
-        music_instance = self.__mysql.select(table="music_instances", colms="*", clause=f"WHERE id={self.__guild.id}")
-        song_uuid = self.__mysql.get_uuid(table="music_songs", colm="id")
+        music_instance = db.MusicInstance.get_or_none(guild=self.__guild.id)
 
-        if len(music_instance) == 0:
-            self.__mysql.insert(table="music_songs", colms="(id, url, data, guild_id, is_playing, added_by)",
-                                values=(song_uuid, link, json.dumps(song_data),
-                                        self.__guild.id, True, self.__author.id))
-            self.__mysql.insert(table="music_instances", colms="(id, owner_id, channel_id, currently_playing)",
-                                values=(self.__guild.id, self.__author.id, channel.id, song_uuid))
+        if not music_instance:
+            currently_playing = db.MusicSong.create(guild=self.__guild.id, url=link, data=json.dumps(song_data),
+                                                    is_playing=True, added_by=self.__author.id)
+            db.MusicInstance.create(guild=self.__guild.id, user=self.__author.id, channel_id=channel.id,
+                                    currently_playing=currently_playing)
 
             return True
         else:
-            self.__mysql.insert(table="music_songs", colms="(id, url, data, guild_id, is_playing, added_by)",
-                                values=(song_uuid, link, json.dumps(song_data),
-                                        self.__guild.id, False, self.__author.id))
-
-            sessions = self.__mysql.select(table="instances", colms="*",
-                                           clause=f"WHERE guild_id={self.__guild.id} and "
-                                                  f"type='status'")
+            db.MusicSong.create(guild=self.__guild.id, url=link, data=json.dumps(song_data), added_by=self.__author.id)
+            sessions = list(db.Instance.select().where(
+                db.Instance.guild == self.__guild.id,
+                db.Instance.type == "status"
+            ))
 
             for session in sessions:
-                status_message = self.__bot_instance.get_instance(session["message_id"])
+                status_message = self.__bot_instance.get_instance(session.id)
                 await status_message.reload()
 
             return False

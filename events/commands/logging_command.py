@@ -1,5 +1,6 @@
 import nextcord
 
+import db
 from events import command
 
 
@@ -10,42 +11,36 @@ class Command(command.Command):
     async def run(self):
         guild = self.__interaction.guild
 
-        guild_settings = self.__mysql.select(table="guilds",
-                                             colms="guilds.id, settings.log_category, settings.id AS settings_id, "
-                                                   "settings.logging_level",
-                                             clause=f"INNER JOIN settings ON guilds.settings=settings.id "
-                                                    f"WHERE guilds.id={guild.id}")[0]
+        guild_data = db.Guild.get_or_none(id=guild.id)
 
-        if self.__data["level"] != 0 and guild_settings["logging_level"] == 0:
+        if self.__data["level"] != 0 and guild_data.settings.logging_level == 0:
             category = await guild.create_category(name="E.D.I.T.H Logging")
             messages_channel = await category.create_text_channel(name="messages")
 
-            self.__mysql.insert(table="custom_channels", colms="(id, guild_id)", values=(category.id, guild.id))
-            self.__mysql.insert(table="custom_channels", colms="(id, guild_id)", values=(messages_channel.id, guild.id))
+            db.CustomChannel.create(id=category.id, guild=guild.id)
+            db.CustomChannel.create(id=messages_channel.id, guild=guild.id)
 
             await category.set_permissions(guild.default_role, view_channel=False)
 
-            self.__mysql.update(table="settings", value=f"log_category={category.id}",
-                                clause=f"WHERE id='{guild_settings['settings_id']}'")
-            self.__mysql.update(table="settings", value=f"messages_channel={messages_channel.id}",
-                                clause=f"WHERE id='{guild_settings['settings_id']}'")
-            self.__mysql.update(table="settings", value=f"logging_level={self.__data['level']}",
-                                clause=f"WHERE id='{guild_settings['settings_id']}'")
+            guild_data.settings.log_category = category.id
+            guild_data.settings.messages_channel = messages_channel.id
+            guild_data.settings.logging_level = self.__data['level']
+            guild_data.settings.save()
 
             embed = nextcord.Embed(
                 description="The logging-tool is now enabled!",
                 colour=nextcord.Colour.green()
             )
-        elif self.__data["level"] != 0 and guild_settings["logging_level"] != 0:
+        elif self.__data["level"] != 0 and guild_data.settings.logging_level != 0:
             embed = nextcord.Embed(
                 description="The logging-tool was updated to the given level!",
                 colour=nextcord.Colour.green()
             )
 
-            self.__mysql.update(table="settings", value=f"logging_level={self.__data['level']}",
-                                clause=f"WHERE id='{guild_settings['settings_id']}'")
-        elif self.__data["level"] == 0 and guild_settings["logging_level"] != 0:
-            category = guild.get_channel(guild_settings["log_category"])
+            guild_data.settings.logging_level = self.__data['level']
+            guild_data.settings.save()
+        elif self.__data["level"] == 0 and guild_data.settings.logging_level != 0:
+            category = guild.get_channel(guild_data.settings.log_category)
             channels = category.channels
 
             for channel in channels:
@@ -53,12 +48,10 @@ class Command(command.Command):
 
             await category.delete()
 
-            self.__mysql.update(table="settings", value=f"log_category=Null",
-                                clause=f"WHERE id='{guild_settings['settings_id']}'")
-            self.__mysql.update(table="settings", value=f"messages_channel=Null",
-                                clause=f"WHERE id='{guild_settings['settings_id']}'")
-            self.__mysql.update(table="settings", value=f"logging_level=0",
-                                clause=f"WHERE id='{guild_settings['settings_id']}'")
+            guild_data.settings.log_category = None
+            guild_data.settings.messages_channel = None
+            guild_data.settings.logging_level = 0
+            guild_data.settings.save()
 
             embed = nextcord.Embed(
                 description="The logging-tool is now disabled!",

@@ -3,6 +3,7 @@ import random
 
 import nextcord
 
+import db
 from events import command, instance
 from events.commands.scm_views import config_view, queue_view, user_view, rename_modal
 
@@ -13,20 +14,17 @@ class Command(command.Command):
 
     async def run(self):
         if self.__data["command"] == "setup":
-            creator_data = self.__mysql.select(table="scm_creators", colms="*",
-                                               clause=f"WHERE guild_id={self.__guild.id}")
+            scm_creator = db.SCMCreator.get_or_none(guild=self.__guild.id)
 
-            if 0 < len(creator_data):
-                creator_data = creator_data[0]
-
+            if scm_creator:
                 if self.__data["method"] == "deactivate":
-                    voice_channel = self.__guild.get_channel(int(creator_data["id"]))
+                    voice_channel = self.__guild.get_channel(int(scm_creator.channel.id))
                     category = voice_channel.category
 
                     await voice_channel.delete()
                     await category.delete()
 
-                    self.__mysql.delete(table="scm_creators", clause=f"WHERE guild_id={self.__guild.id}")
+                    scm_creator.delete_instance()
 
                     embed = nextcord.Embed(
                         description=f"S.C.M is not longer active!",
@@ -40,19 +38,16 @@ class Command(command.Command):
             else:
                 if self.__data["method"] == "activate":
                     category = await self.__guild.create_category(
-                        name="Smart Channel Manager"
+                        name="🔨 Smart Channel Manager"
                     )
-                    self.__mysql.insert(table="custom_channels", colms="(id, guild_id)",
-                                        values=(category.id, self.__guild.id))
+                    db.CustomChannel.create(id=category.id, guild=self.__guild.id)
                     voice_channel = await self.__guild.create_voice_channel(
-                        name="S.C.M",
+                        name="🚧 Create a Channel",
                         category=category
                     )
-                    self.__mysql.insert(table="custom_channels", colms="(id, guild_id)",
-                                        values=(voice_channel.id, self.__guild.id))
+                    db.CustomChannel.create(id=voice_channel.id, guild=self.__guild.id)
 
-                    self.__mysql.insert(table="scm_creators", colms="(id, guild_id)",
-                                        values=(voice_channel.id, self.__guild.id))
+                    db.SCMCreator.create(guild=self.__guild.id, channel=voice_channel.id)
 
                     embed = nextcord.Embed(
                         description=f"S.C.M is now activ!",
@@ -79,26 +74,21 @@ class Command(command.Command):
             if self.__data["method"] == "add":
                 role = self.__data["role"]
 
-                role_data = self.__mysql.select(table="scm_roles", colms="id",
-                                                clause=f"WHERE id={role.id}")
-                role_datas = self.__mysql.select(table="scm_roles", colms="id",
-                                                 clause=f"WHERE guild_id={self.__guild.id}")
+                role_data = db.SCMRole.get_or_none(id=role.id)
+                role_datas = list(db.SCMRole.select().where(db.SCMRole.guild == self.__guild.id))
 
-                if len(role_data) == 0 and len(role_datas) < 10:
+                if not role_data and len(role_datas) < 10:
                     emoji = random.choice(emojis)
 
-                    used_emojis = self.__mysql.select(table="scm_roles", colms="emoji",
-                                                      clause=f"WHERE guild_id={self.__guild.id} and emoji='{emoji}'")
+                    role_with_emoji = db.SCMRole.get_or_none(guild=self.__guild.id, emoji=emoji)
 
-                    while {"emoji": emoji} in used_emojis:
+                    while role_with_emoji:
                         emojis.remove(emoji)
                         emoji = random.choice(emojis)
 
-                        used_emojis = self.__mysql.select(table="scm_roles", colms="emoji",
-                                                          clause=f"WHERE guild_id={self.__guild.id} and emoji='{emoji}'")
+                        role_with_emoji = db.SCMRole.get_or_none(guild=self.__guild.id, emoji=emoji)
 
-                    self.__mysql.insert(table="scm_roles", colms="(id, guild_id, emoji)",
-                                        values=(role.id, self.__guild.id, emoji))
+                    db.SCMRole.create(id=role.id, guild=self.__guild.id, emoji=emoji)
 
                     embed = nextcord.Embed(
                         description=f"{role.mention} is now registered with the emoji `{emoji}`!",
@@ -128,13 +118,10 @@ class Command(command.Command):
             elif self.__data["method"] == "remove":
                 role = self.__data["role"]
 
-                role_data = self.__mysql.select(table="scm_roles", colms="id",
-                                                clause=f"WHERE id={role.id}")
-                role_datas = self.__mysql.select(table="scm_roles", colms="id",
-                                                 clause=f"WHERE guild_id={self.__guild.id}")
+                role_data = db.SCMRole.get_or_none(id=role.id)
 
-                if len(role_data) != 0:
-                    self.__mysql.delete(table="scm_roles", clause=f"WHERE id={role.id}")
+                if role_data:
+                    role_data.delete_instance()
 
                     embed = nextcord.Embed(
                         description=f"{role.mention} is not longer registered!",
@@ -160,13 +147,26 @@ class Command(command.Command):
             category = self.__channel.category
 
             if category is not None and self.__is_admin(self.__interaction):
-                scm_room_channels = self.__mysql.select(table="scm_rooms", colms="channels",
-                                                        clause=f"WHERE id={category.id}")
+                room = db.SCMRoom.get_or_none(id=category.id)
 
-                if 0 < len(scm_room_channels):
+                if room:
                     command_instance = instance.Instance(view_callback=user_view.View, bot_instance=self.__bot_instance)
                     await command_instance.create(self.__interaction, "user",
                                                   data={"user": self.__data["user"].id, "room_id": category.id})
+                else:
+                    embed = nextcord.Embed(
+                        description=f"This is not a S.C.M-Room!",
+                        colour=nextcord.Colour.orange()
+                    )
+
+                    embed.set_author(
+                        name="Smart Channel Manager",
+                        icon_url="https://images-ext-2.discordapp.net/external/"
+                                 "Ca6iHCDtx2yG5aw9ZAF6Ja-kJezcUu_N24TULp6Q9bc/https/cdn0.iconfinder.com/data/"
+                                 "icons/small-n-flat/24/678136-shield-warning-512.png"
+                    )
+
+                    await self.__interaction.send(embed=embed, ephemeral=True)
             elif category is not None and not self.__is_admin(self.__interaction):
                 embed = nextcord.Embed(
                     description=f"You need to be an admin of this room to use this command!",
@@ -199,13 +199,26 @@ class Command(command.Command):
             category = self.__channel.category
 
             if category is not None and self.__is_admin(self.__interaction):
-                scm_room_channels = self.__mysql.select(table="scm_rooms", colms="channels",
-                                                        clause=f"WHERE id={category.id}")
+                room = db.SCMRoom.get_or_none(id=category.id)
 
-                if 0 < len(scm_room_channels):
+                if room:
                     await self.__interaction.response.send_modal(
                         rename_modal.Modal(category, self.__guild, self.__data, self.__bot_instance)
                     )
+                else:
+                    embed = nextcord.Embed(
+                        description=f"This is not a S.C.M-Room!",
+                        colour=nextcord.Colour.orange()
+                    )
+
+                    embed.set_author(
+                        name="Smart Channel Manager",
+                        icon_url="https://images-ext-2.discordapp.net/external/"
+                                 "Ca6iHCDtx2yG5aw9ZAF6Ja-kJezcUu_N24TULp6Q9bc/https/cdn0.iconfinder.com/data/"
+                                 "icons/small-n-flat/24/678136-shield-warning-512.png"
+                    )
+
+                    await self.__interaction.send(embed=embed, ephemeral=True)
             elif category is not None and not self.__is_admin(self.__interaction):
                 embed = nextcord.Embed(
                     description=f"You need to be an admin of this room to use this command!",
@@ -239,19 +252,18 @@ class Command(command.Command):
         user = interaction.user
         room_id = self.__channel.category.id
 
-        room_data = self.__mysql.select(table="scm_users", colms="user_id",
-                                        clause=f"WHERE category_id={room_id} and (status='admin' or status='owner')")
+        admin = db.SCMUser.get_or_none(user=user.id, room=room_id, status="admin")
+        owner = db.SCMUser.get_or_none(user=user.id, room=room_id, status="owner")
 
-        if {"user_id": user.id} in room_data:
+        if admin or owner:
             return True
         else:
             return False
 
     async def __sync_roles(self):
-        sessions = self.__mysql.select(table="instances", colms="*",
-                                       clause=f"WHERE guild_id={self.__guild.id} and "
-                                              f"type='config'")
+
+        sessions = list(db.Instance.select().where(db.Instance.guild == self.__guild.id, db.Instance.type == "config"))
 
         for session in sessions:
-            config_message = self.__bot_instance.get_instance(session["message_id"])
+            config_message = self.__bot_instance.get_instance(session.id)
             await config_message.reload()
