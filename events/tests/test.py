@@ -6,9 +6,9 @@ import enchant
 
 
 def createimage():
-    im1 = Image.open('data/pics/common.png')
+    im1 = Image.open('../../data/pics/common.png')
     im2 = Image.open('data/pics/a_9bbb4144c63bd05e6e1b3cb229cfbdc9.gif')
-    mask_im = Image.open('data/pics/mask.jpg')
+    mask_im = Image.open('../../data/pics/mask.jpg')
 
     im2 = im2.resize((45, 45))
     mask_im = mask_im.resize((45, 45))
