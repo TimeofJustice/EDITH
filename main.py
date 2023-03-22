@@ -16,7 +16,7 @@ import db
 from events import instance
 from events.commands import weather_command, purge_command, meme_command, up_command, about_command, music_command, \
     calculator_view, poll_view, backup_view, profile_view, tts_view, movie_view, scm_command, order66_view, \
-    logging_command, settings_command
+    logging_command, settings_command, animal_command
 from events.commands.music_views import play_view, search_view
 from events.commands.scm_views import config_view, queue_view, user_view
 from events.listeners import on_guild_remove_listener, on_member_join_listener, on_member_remove_listener, \
@@ -481,6 +481,23 @@ class Bot:
                 )
         ):
             command = weather_command.Command(interaction, self, {"city": city})
+            await command.run()
+
+        @bot.slash_command(
+            description="Shows a random image and fact!",
+            guild_ids=guild_ids
+        )
+        async def animal(
+                interaction: nextcord.Interaction,
+                target: str = nextcord.SlashOption(
+                    name="animal",
+                    description="What animal do you want to see?",
+                    choices=["bird", "cat", "dog", "fox", "kangaroo", "koala", "panda", "raccoon", "red_panda"],
+                    default="raccoon",
+                    required=True
+                )
+        ):
+            command = animal_command.Command(interaction, self, {"animal": target})
             await command.run()
 
         @bot.slash_command(
