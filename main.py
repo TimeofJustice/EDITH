@@ -5,6 +5,8 @@ import random
 from datetime import datetime
 import os
 from pathlib import Path
+from typing import List
+
 import nextcord
 import schedule
 from nextcord import ApplicationCheckFailure
@@ -63,7 +65,7 @@ class Bot:
 
         self.__bot.run(self.__token)
 
-    def get_instance(self, key: str):
+    def get_instance(self, key: str) -> Instance:
         """
         Get an instance by key.
 
@@ -99,7 +101,7 @@ class Bot:
         return self.__bot
 
     @staticmethod
-    def get_version():
+    def get_version() -> str:
         """
         Get the latest version of the bot.
 
@@ -109,7 +111,7 @@ class Bot:
         dates = [datetime.fromtimestamp(os.path.getmtime(str(f))).strftime('%Y.%m.%d') for f in files]
         return sorted(dates, reverse=True)[0]
 
-    def get_running_time(self):
+    def get_running_time(self) -> str:
         """
         Get the running time of the bot.
 
@@ -248,69 +250,83 @@ class Bot:
             return self
 
     def check_user_progress(self, member: nextcord.Member):
+        """
+        Checks the progress of a user's daily and weekly tasks and updates the user's XP accordingly.
+
+        :param member: The member whose progress should be checked.
+
+        :raise ValueError: If the user profile for the given member is not found.
+        """
         user_profile = db.User.get_or_none(id=member.id)
+        if user_profile is None:
+            raise ValueError("User profile not found")
 
-        daily_tasks = user_profile.daily_tasks
-        weekly_tasks = user_profile.weekly_tasks
+        # Combine daily and weekly tasks into one list
+        tasks = user_profile.daily_tasks + user_profile.weekly_tasks
+        # Create a dictionary to easily access the progress type for each task type
+        progress_types = {
+            "daily": user_profile.daily_progress,
+            "weekly": user_profile.weekly_progress,
+        }
 
-        for daily_task in daily_tasks:
+        for task in tasks:
+            # Get the progress type for this task
             progress = 0
+            progress_type = progress_types[task.task_type]
 
-            if daily_task.accomplish_type == "minutes_in_voice":
-                progress = user_profile.daily_progress.time_in_voice
-            elif daily_task.accomplish_type == "send_messages":
-                progress = user_profile.daily_progress.messages_send
-            elif daily_task.accomplish_type == "movle_game":
-                progress = user_profile.daily_progress.movies_guessed
+            # Determine the progress based on the accomplishment type
+            if task.accomplish_type == "minutes_in_voice":
+                progress = progress_type.time_in_voice
+            elif task.accomplish_type == "send_messages":
+                progress = progress_type.messages_send
+            elif task.accomplish_type == "movle_game":
+                progress = progress_type.movies_guessed
 
-            if daily_task.amount <= progress and not daily_task.completed:
-                daily_task.completed = True
+            # If the task is completed, update the user's XP and mark the task as completed
+            if task.amount <= progress and not task.completed:
+                task.completed = True
 
-                user_profile.xp += daily_task.xp
+                user_profile.xp += task.xp
                 user_profile.save()
-                daily_task.save()
+                task.save()
 
-        for weekly_task in weekly_tasks:
-            progress = 0
+        return self
 
-            if weekly_task.accomplish_type == "minutes_in_voice":
-                progress = user_profile.weekly_progress.time_in_voice
-            elif weekly_task.accomplish_type == "send_messages":
-                progress = user_profile.weekly_progress.messages_send
-            elif weekly_task.accomplish_type == "movle_game":
-                progress = user_profile.weekly_progress.movies_guessed
+    async def __initiate_instances(self, sessions: list, views: dict) -> int:
+        """
+        Initializes the Discord voice connections for each session and reconnects if necessary.
 
-            if weekly_task.amount <= progress and not weekly_task.completed:
-                weekly_task.completed = True
+        :param sessions: The list of sessions to initialize.
+        :param views: The list of views to associate with each session.
 
-                user_profile.xp += weekly_task.xp
-                user_profile.save()
-                weekly_task.save()
-
-    async def __initiate_instances(self, sessions, views):
+        :return int: The number of sessions initialized.
+        """
+        # Disconnect from any existing voice clients
         for guild in self.__bot.guilds:
             bot_client = guild.voice_client
-
             if bot_client is not None:
                 await bot_client.disconnect(force=True)
 
-        methods = []
+        # Reinitialize each session and view
+        methods = [self.__reinit_session(session, views) for session in sessions]
+        await asyncio.gather(*methods)
 
-        for session in sessions:
-            methods.append(self.__reinit_session(session, views))
-
-        await asyncio.gather(
-            *methods
-        )
-
+        # Return the number of sessions initialized
         return len(sessions)
 
-    async def __reinit_session(self, session, views):
+    async def __reinit_session(self, session: db.Instance, views: dict):
+        """
+        Reinitializes the given session by creating a new command instance and initiating it. If an error occurs, deletes
+        all poll votes and the instance from the database, and deletes the corresponding message if possible.
+
+        :param session: Session to reinitialize.
+        :param views: Dictionary containing callback functions for each session type.
+        """
         try:
             command = instance.Instance(view_callback=views[session.type], bot_instance=self)
             await command.initiate(session)
         except Exception as e:
-            print(f"In '__initiate_instances' ({session.id}):\n{e}")
+            print(f"Error in '__reinit_session' ({session.id}):\n{e}")
             db.PollVote.delete().where(db.PollVote.poll_id == session.id).execute()
             db.Instance.delete().where(db.Instance.id == session.id).execute()
 
@@ -321,52 +337,75 @@ class Bot:
 
                 await message.delete()
             except Exception as e:
-                print(e)
+                print(f"Error deleting message in '__reinit_session' ({session.id}):\n{e}")
 
-    async def __reinit_voice_sessions(self, guild: nextcord.Guild):
-        voice_sessions = list(db.VoiceSession.select().where(db.VoiceSession.guild == guild.id))
+    async def __reinit_voice_sessions(self, guild: nextcord.Guild) -> int:
+        """
+        Reinitializes voice sessions for a given guild.
+        Deletes voice sessions for users who are no longer members of the guild.
+        :param guild: The guild to reinitialize voice sessions for.
+        :return: The number of reinitialized voice sessions.
+        """
+        voice_sessions = db.VoiceSession.select().where(db.VoiceSession.guild == guild.id)
 
+        num_reinitialized_sessions = 0
         for voice_session in voice_sessions:
             member = guild.get_member(int(voice_session.user.id))
-
-            if member is not None:
+            if member:
                 listener = on_voice_state_update_listener.Listener(self)
                 listener.init_worker_thread(member, guild)
+                num_reinitialized_sessions += 1
             else:
                 voice_session.delete_instance()
 
-        return len(voice_sessions)
+        return num_reinitialized_sessions
 
-    async def __schedules(self):
+    async def __run_scheduled_tasks(self):
+        """
+        Runs scheduled tasks at specified times.
+        """
+        # Clear daily and weekly tasks before scheduling them again
+        schedule.clear('daily-tasks')
+        schedule.clear('weekly-tasks')
+
+        # Schedule daily and weekly tasks
         schedule.every().day.at("00:00").do(self.__clear_tasks, "daily").tag('daily-tasks', 'tasks')
         schedule.every().monday.at("00:00").do(self.__clear_tasks, "weekly").tag('weekly-tasks', 'tasks')
 
         while True:
+            # Run scheduled tasks
             schedule.run_pending()
+            # Wait for 1 second before checking again
             await asyncio.sleep(1)
 
     def __init_events(self):
+        """
+        Initialisiert alle Bot-Events.
+        """
         bot = self.__bot
 
         @bot.event
         async def on_ready():
+            """
+            Event-Handler für das 'on_ready'-Event.
+            """
             if not self.__is_already_running:
                 await self.__bot.sync_all_application_commands()
 
                 guilds = list(db.Guild.select())
                 guild_ids = []
-                __now = datetime.now()
+                now = datetime.now()
 
                 for guild in guilds:
                     guild_ids.append(guild.id)
 
-                print("(BOT) " + bot.user.name + " ist bereit [{}]".format(__now.strftime("%d/%m/%Y, %H:%M:%S")))
+                print("(BOT) " + bot.user.name + " ist bereit [{}]".format(now.strftime("%d/%m/%Y, %H:%M:%S")))
                 print("(BOT) Vorhandene Guilden ({}):".format(len(bot.guilds)))
 
                 for guild in bot.guilds:
                     print("\t- " + guild.name + "\t" + Fore.CYAN + str(guild.id) + Style.RESET_ALL)
 
-                asyncio.create_task(self.__schedules())
+                asyncio.create_task(self.__run_scheduled_tasks())
 
                 self.__is_already_running = True
 
@@ -388,6 +427,9 @@ class Bot:
 
         @bot.event
         async def on_message(message: nextcord.Message):
+            """
+            Event-Handler für das 'on_message'-Event.
+            """
             if type(message.author) is nextcord.Member:
                 self.create_user_profile(message.author)
 
@@ -396,11 +438,17 @@ class Bot:
 
         @bot.event
         async def on_raw_message_delete(payload: nextcord.RawMessageDeleteEvent):
+            """
+            Event-Handler für das 'on_raw_message_delete'-Event.
+            """
             listener = on_raw_message_delete_listener.Listener(self)
             await listener.call(payload)
 
         @bot.event
         async def on_member_join(member: nextcord.Member):
+            """
+            Event-Handler für das 'on_member_join'-Event.
+            """
             self.create_user_profile(member)
 
             listener = on_member_join_listener.Listener(self)
@@ -408,6 +456,9 @@ class Bot:
 
         @bot.event
         async def on_member_remove(member: nextcord.Member):
+            """
+            Event-Handler für das 'on_member_remove'-Event.
+            """
             listener = on_member_remove_listener.Listener(self)
             await listener.call(member)
 
@@ -417,6 +468,9 @@ class Bot:
                 before: nextcord.VoiceState,
                 after: nextcord.VoiceState
         ):
+            """
+            Event-Handler für das 'on_voice_state_update'-Event.
+            """
             self.create_user_profile(member)
 
             listener = on_voice_state_update_listener.Listener(self)
@@ -424,6 +478,10 @@ class Bot:
 
         @bot.event
         async def on_guild_available(guild: nextcord.Guild):
+            """
+            Event-Handler für das 'on_guild_available'-Event.
+            Erstellt automatisch Einstellungen für den Server, wenn dieser zum ersten Mal verfügbar ist.
+            """
             guilds = list(db.Guild.select())
             guild_ids = []
 
@@ -463,6 +521,10 @@ class Bot:
 
         @bot.event
         async def on_guild_join(guild: nextcord.Guild):
+            """
+            Event-Handler für das 'on_guild_join'-Event.
+            Erstellt automatisch Einstellungen für den Server, wenn dieser zum ersten Mal beigetreten wird.
+            """
             guilds = list(db.Guild.select())
             guild_ids = []
 
@@ -476,37 +538,29 @@ class Bot:
 
         @bot.event
         async def on_guild_remove(guild: nextcord.Guild):
+            """
+            Event-Handler für das 'on_guild_remove'-Event.
+            """
             listener = on_guild_remove_listener.Listener(self)
             await listener.call(guild)
 
     def __init_commands(self):
         bot = self.__bot
 
-        guilds = list(db.Guild.select())
-        guild_ids = []
-
-        for guild in guilds:
-            guild_ids.append(guild.id)
-
-        def is_me():
-            def predicate(interaction: nextcord.Interaction):
-                return interaction.user.id == 243747656470495233
-
-            return check(predicate)
-
         @bot.slash_command(
-            description="Opens an individual calculator, that supports basic mathematical equations.",
-            guild_ids=guild_ids
+            description="Opens an individual calculator, that supports basic mathematical equations."
         )
         async def calculator(
                 interaction: nextcord.Interaction
         ):
+            """
+            Opens an individual calculator, that supports basic mathematical equations.
+            """
             command = instance.Instance(view_callback=calculator_view.View, bot_instance=self)
             await command.create(interaction, "calculator")
 
         @bot.slash_command(
-            description="Creates a poll with one question and an amount of answers from 1 - 4.",
-            guild_ids=guild_ids
+            description="Creates a poll with one question and an amount of answers from 1 - 4."
         )
         async def poll(
                 interaction: nextcord.Interaction,
@@ -517,11 +571,13 @@ class Bot:
                     max_value=4
                 )
         ):
+            """
+            Creates a poll with one question and an amount of answers from 1 - 4.
+            """
             await interaction.response.send_modal(poll_view.Modal(number, self, interaction.guild))
 
         @bot.slash_command(
-            description="That's how the weather outside is, for you caveman!",
-            guild_ids=guild_ids
+            description="That's how the weather outside is, for you caveman!"
         )
         async def weather(
                 interaction: nextcord.Interaction,
@@ -530,12 +586,14 @@ class Bot:
                     description="Where should I look?"
                 )
         ):
+            """
+            That's how the weather outside is, for you caveman!
+            """
             command = weather_command.Command(interaction, self, {"city": city})
             await command.run()
 
         @bot.slash_command(
-            description="Shows a random image and fact!",
-            guild_ids=guild_ids
+            description="Shows a random image and fact!"
         )
         async def animal(
                 interaction: nextcord.Interaction,
@@ -547,12 +605,14 @@ class Bot:
                     required=True
                 )
         ):
+            """
+            Shows a random image and fact!
+            """
             command = animal_command.Command(interaction, self, {"animal": target})
             await command.run()
 
         @bot.slash_command(
-            description="Deletes an amount of messages",
-            guild_ids=guild_ids
+            description="Deletes an amount of messages"
         )
         @has_permissions(manage_messages=True)
         async def purge(
@@ -565,12 +625,14 @@ class Bot:
                     default=1
                 )
         ):
+            """
+            Deletes an amount of messages
+            """
             command = purge_command.Command(interaction, self, {"amount": amount})
             await command.run()
 
         @bot.slash_command(
-            description="Shows a random meme from a subreddit!",
-            guild_ids=guild_ids
+            description="Shows a random meme from a subreddit!"
         )
         async def meme(
                 interaction: nextcord.Interaction,
@@ -580,15 +642,19 @@ class Bot:
                     required=False
                 )
         ):
+            """
+            Shows a random meme from a subreddit!
+            """
             command = meme_command.Command(interaction, self, {"subreddit": subreddit})
             await command.run()
 
-        @bot.slash_command(
-            guild_ids=guild_ids
-        )
+        @bot.slash_command()
         async def faq(
                 interaction: nextcord.Interaction
         ):
+            """
+            Command-container for subcommands
+            """
             pass
 
         @faq.subcommand(
@@ -597,6 +663,9 @@ class Bot:
         async def up(
                 interaction: nextcord.Interaction
         ):
+            """
+            Shows the uptime of E.D.I.T.H.
+            """
             command = up_command.Command(interaction, self)
             await command.run()
 
@@ -606,14 +675,16 @@ class Bot:
         async def about(
                 interaction: nextcord.Interaction
         ):
+            """
+            Shows information about E.D.I.T.H.
+            """
             command = about_command.Command(interaction, self)
             await command.run()
 
         @bot.slash_command(
-            description="Executes the order-66!",
-            guild_ids=guild_ids
+            description="Executes the order-66!"
         )
-        @is_me()
+        @check(lambda i: i.user.id == 243747656470495233)
         async def order66(
                 interaction: nextcord.Interaction,
                 target: nextcord.User = nextcord.SlashOption(
@@ -622,12 +693,14 @@ class Bot:
                     required=True
                 )
         ):
+            """
+            Executes the order-66!
+            """
             command = instance.Instance(view_callback=order66_view.View, bot_instance=self)
             await command.create(interaction, "order66", data={"target": target.id})
 
         @bot.slash_command(
-            description="Plays a custom phrase!",
-            guild_ids=guild_ids
+            description="Plays a custom phrase!"
         )
         async def tts(
                 interaction: nextcord.Interaction,
@@ -636,12 +709,14 @@ class Bot:
                     description="What should I say?"
                 )
         ):
+            """
+            Plays a custom phrase!
+            """
             command = instance.Instance(view_callback=tts_view.View, bot_instance=self)
             await command.create(interaction, "tts", data={"phrase": phrase})
 
         @bot.slash_command(
-            description="Shows your or someone elses profile!",
-            guild_ids=guild_ids
+            description="Shows your or someone elses profile!"
         )
         async def profile(
                 interaction: nextcord.Interaction,
@@ -651,15 +726,26 @@ class Bot:
                     required=False
                 )
         ):
-            if user is None:
-                user = interaction.user
+            """
+            Shows your or someone else's profile!
+            :param interaction: The interaction object representing the user's interaction with the bot.
+            :param user: The optional user whose profile is being viewed.
+            """
+            # If no user is specified, show the profile of the interaction's user.
+            profile_user = user or interaction.user
 
-            command = instance.Instance(view_callback=profile_view.View, bot_instance=self)
-            await command.create(interaction, "profile", data={"user": user.id})
+            # Create a command to display the profile view.
+            profile_view_command = instance.Instance(view_callback=profile_view.View, bot_instance=self)
+
+            # Create and send the profile view.
+            await profile_view_command.create(
+                interaction,
+                "profile",
+                data={"user": profile_user.id}
+            )
 
         @bot.slash_command(
             description="Opens the backup-terminal!",
-            guild_ids=guild_ids
         )
         @has_permissions(administrator=True)
         async def backup(
