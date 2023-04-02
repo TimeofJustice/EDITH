@@ -63,7 +63,7 @@ class Bot:
         result = list(Path(".").rglob("*.*"))
         dates = []
         for x in result:
-            if not str(x).__contains__(".log"):
+            if not str(x).__contains__(".log") and not str(x).__contains__("data/"):
                 dates.append(datetime.fromtimestamp(
                     os.path.getmtime(os.getcwd() + "/" + str(x))
                 ).strftime('%Y.%m.%d'))
