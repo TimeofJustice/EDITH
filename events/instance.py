@@ -74,12 +74,12 @@ class Instance:
             print(f"In '__initiate_instances' ({instance_data.id}):\n{e}\n\tRecreate Instance...")
             db.PollVote.delete().where(db.PollVote.poll_id == instance_data.id).execute()
             db.Instance.delete().where(db.Instance.id == instance_data.id).execute()
-            await self.create_manual(self.__channel, self.__author, instance_data["type"], self.__data)
+            await self.create_manual(self.__channel, self.__author, instance_data.type, self.__data)
 
-            if instance_data["type"] == "config":
-                scm_room = db.SCMRoom.get(db.SCMRoom.instance.id == self.__channel.category.id)
-                scm_room.message_id = self.__message.id
-                scm_room.update()
+            if instance_data.type == "config":
+                scm_room = db.SCMRoom.get(db.SCMRoom.id == self.__channel.category.id)
+                scm_room.instance = self.__message.id
+                scm_room.save()
 
             return
         except Exception as e:
