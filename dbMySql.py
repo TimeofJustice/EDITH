@@ -2,15 +2,19 @@ import configparser
 from datetime import datetime
 
 from peewee import *
-from playhouse.postgres_ext import *
+from playhouse.mysql_ext import MySQLConnectorDatabase
+
 
 config = configparser.ConfigParser()
 config.read('data/config.ini')
 
-db = PostgresqlExtDatabase(
-    config["POSTGRES"]["db"],
-    host='localhost', port=5432,
-    user=config["POSTGRES"]["username"], password=config["POSTGRES"]["passwort"]
+db = MySQLConnectorDatabase(
+    config["MYSQL"]["db"],
+    host='localhost',
+    user=config["MYSQL"]["username"],
+    password=config["MYSQL"]["passwort"],
+    use_unicode=True,
+    charset='utf8mb4'
 )
 
 
@@ -30,8 +34,6 @@ class Guild(ModelBase):
         logging_level = IntegerField(default=0)
         error_channel = BigIntegerField(null=True)
         default_role = BigIntegerField(null=True)
-        news_category = BigIntegerField(null=True)
-        news_channel = BigIntegerField(null=True)
 
     id = BigIntegerField(primary_key=True)
     settings = ForeignKeyField(Setting, to_field="id")
@@ -125,7 +127,7 @@ class SCMRoom(ModelBase):
     guild = ForeignKeyField(Guild, to_field="id")
     channels = TextField(default="{}")
     user = ForeignKeyField(User, to_field="id")
-    instance = ForeignKeyField(Instance, to_field="id", null=True)
+    instance = ForeignKeyField(Instance, to_field="id")
     is_permanent = BooleanField(default=0)
 
 
@@ -179,39 +181,8 @@ class MusicInstance(ModelBase):
     currently_playing = ForeignKeyField(MusicSong, to_field="id")
 
 
-class Birthday(ModelBase):
-    id = BigAutoField(primary_key=True)
-    user = CharField(max_length=255, null=False)
-    date = DateField()
-    event_id = BigIntegerField(null=True)
-
-
-class News(ModelBase):
-    id = BigIntegerField(primary_key=True)
-    guild = ForeignKeyField(Guild, to_field="id")
-    role = BigIntegerField()
-    description = TextField(null=True)
-    name = CharField(max_length=255)
-    instance = ForeignKeyField(Instance, to_field="id", null=True)
-
-
 db.create_tables([Guild.Setting, Guild,
                   User.DailyTask, User.DailyProgress, User.WeeklyProgress, User.WeeklyTask, User.Statistic, User,
                   UserDailyTasks, UserWeeklyTasks,
                   Instance, PollVote, CustomChannel, Backup, SCMCreator, SCMRoom, SCMUser, SCMRole, SCMRoomRole,
-                  MovieGuess, VoiceSession, MusicSong, MusicInstance, Birthday, News])
-
-# add new columns to existing tables
-new_columns = [
-    "ALTER TABLE birthday ADD COLUMN event_id BIGINT NULL;",
-    "ALTER TABLE setting ADD COLUMN news_category BIGINT NULL;",
-    "ALTER TABLE setting ADD COLUMN news_channel BIGINT NULL;",
-    "ALTER TABLE news ADD COLUMN name VARCHAR(255) NULL;",
-]
-
-# try to add new columns to existing tables
-for column in new_columns:
-    try:
-        db.execute_sql(column)
-    except Exception as e:
-        pass
+                  MovieGuess, VoiceSession, MusicSong, MusicInstance])

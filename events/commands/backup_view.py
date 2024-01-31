@@ -59,7 +59,7 @@ class View(view.View):
 
         custom_channels = []
         for custom_channel in custom_channel_data:
-            custom_channels.append(custom_channel["id"])
+            custom_channels.append(custom_channel.id)
 
         data = {
             "main": {
@@ -531,12 +531,12 @@ class View(view.View):
     async def __clean_guild(self):
         await self.__guild.edit(name="Loading...")
 
+        db.SCMRoom.delete().where(db.SCMRoom.guild == self.__guild.id).execute()
+        db.SCMCreator.delete().where(db.SCMCreator.guild == self.__guild.id).execute()
         db.CustomChannel.delete().where(db.CustomChannel.guild == self.__guild.id).execute()
         db.Instance.delete().where(db.Instance.guild == self.__guild.id).execute()
-        db.SCMCreator.delete().where(db.SCMCreator.guild == self.__guild.id).execute()
         db.SCMRole.delete().where(db.SCMRole.guild == self.__guild.id).execute()
         rooms = list(db.SCMRoom.select().where(db.SCMRoom.guild == self.__guild.id))
-        db.SCMRoom.delete().where(db.SCMRoom.guild == self.__guild.id).execute()
         db.SCMUser.delete().where(db.SCMUser.guild == self.__guild.id).execute()
 
         for room in rooms:

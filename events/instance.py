@@ -73,6 +73,12 @@ class Instance:
         except nextcord.NotFound as e:
             print(f"In '__initiate_instances' ({instance_data.id}):\n{e}\n\tRecreate Instance...")
             db.PollVote.delete().where(db.PollVote.poll_id == instance_data.id).execute()
+
+            if instance_data.type == "config":
+                scm_room = db.SCMRoom.get(db.SCMRoom.id == self.__channel.category.id)
+                scm_room.instance = None
+                scm_room.save()
+
             db.Instance.delete().where(db.Instance.id == instance_data.id).execute()
             await self.create_manual(self.__channel, self.__author, instance_data.type, self.__data)
 

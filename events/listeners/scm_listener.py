@@ -111,7 +111,7 @@ class Listener(events.listener.Listener):
         }
 
         scm_room = db.SCMRoom.create(id=category.id, guild=self.__guild.id, channels=json.dumps(channels),
-                                     instance=0, user=member.id)
+                                     instance=None, user=member.id)
 
         if member.voice is not None and member.voice.channel == self.__scm_creator_room:
             await member.move_to(voice_channel)

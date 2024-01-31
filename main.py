@@ -16,11 +16,12 @@ import db
 from events import instance
 from events.commands import weather_command, purge_command, meme_command, up_command, about_command, music_command, \
     calculator_view, poll_view, backup_view, profile_view, tts_view, movie_view, scm_command, order66_view, \
-    logging_command, settings_command, animal_command
+    logging_command, settings_command, animal_command, news_command, birthday_command, news_view
 from events.commands.music_views import play_view, search_view
 from events.commands.scm_views import config_view, queue_view, user_view
 from events.listeners import on_guild_remove_listener, on_member_join_listener, on_member_remove_listener, \
-    on_message_listener, on_raw_message_delete_listener, on_voice_state_update_listener
+    on_message_listener, on_raw_message_delete_listener, on_voice_state_update_listener, \
+    on_guild_scheduled_event_delete_listener
 
 
 class Bot:
@@ -326,7 +327,7 @@ class Bot:
                     status = ["Even Dead I Am The Hero", "v." + str(self.get_version()),
                               "Dev: TimeofJustice", "Running since: " + self.get_running_time()]
                     try:
-                        await self.__bot.change_presence(activity=nextcord.Game(name=status[status_index]))
+                        await self.__bot.change_presence(activity=nextcord.CustomActivity(name=status[status_index]))
                     except Exception as e:
                         print(f"Exception in 'idle_handler':\n{e}")
                     status_index += 1
@@ -399,7 +400,8 @@ class Bot:
                 "search": search_view.View,
                 "config": config_view.View,
                 "queue": queue_view.View,
-                "user": user_view.View
+                "user": user_view.View,
+                "news": news_view.View
             }
             start = datetime.now()
 
@@ -428,6 +430,11 @@ class Bot:
         async def on_guild_remove(guild: nextcord.Guild):
             listener = on_guild_remove_listener.Listener(self)
             await listener.call(guild)
+
+        @bot.event
+        async def on_guild_scheduled_event_delete(event: nextcord.ScheduledEvent):
+            listener = on_guild_scheduled_event_delete_listener.Listener(self)
+            await listener.call(event)
 
     def __init_commands(self):
         bot = self.__bot
@@ -745,6 +752,113 @@ class Bot:
                 ),
         ):
             command = scm_command.Command(interaction, self, {"command": "rename", "target": target})
+            await command.run()
+
+        @scm.subcommand(
+            description="Opens the config-interface for your S.C.M-Room!"
+        )
+        async def config(
+                interaction: nextcord.Interaction
+        ):
+            command = scm_command.Command(interaction, self, {"command": "config"})
+            await command.run()
+
+        @bot.slash_command(
+            guild_ids=guild_ids
+        )
+        async def news(
+                interaction: nextcord.Interaction
+        ):
+            pass
+
+        @news.subcommand(
+            description="You can add a channel to the news-system!"
+        )
+        @has_permissions(administrator=True)
+        async def add(
+                interaction: nextcord.Interaction,
+                name: str = nextcord.SlashOption(
+                    name="name",
+                    description="What should the channel be called?",
+                    required=True
+                ),
+                read_only: bool = nextcord.SlashOption(
+                    name="read-only",
+                    description="Should the channel be read-only?",
+                    required=True
+                )
+        ):
+            command = news_command.Command(interaction, self,
+                                           {"subcommand": "add", "name": name, "read_only": read_only})
+            await command.run()
+
+        @news.subcommand(
+            description="You can add a channel to the news-system!"
+        )
+        @has_permissions(administrator=True)
+        async def remove(
+                interaction: nextcord.Interaction,
+                news_channel: nextcord.TextChannel = nextcord.SlashOption(
+                    name="news-channel",
+                    description="Which channel do you want to remove?",
+                    required=True
+                )
+        ):
+            command = news_command.Command(interaction, self,
+                                           {"subcommand": "remove", "news_channel": news_channel.id})
+            await command.run()
+
+        @news.subcommand(
+            description="You can add a channel to the news-system!"
+        )
+        @has_permissions(administrator=True)
+        async def description(
+                interaction: nextcord.Interaction,
+                id: int = nextcord.SlashOption(
+                    name="id",
+                    description="Which channel do you want to remove?",
+                    required=True
+                )
+        ):
+            command = news_command.Command(interaction, self, {"subcommand": "description", "id": id})
+            await command.run()
+
+        @bot.slash_command(
+            guild_ids=guild_ids
+        )
+        async def birthday(
+                interaction: nextcord.Interaction
+        ):
+            pass
+
+        @birthday.subcommand(
+            description="Adds a birthday to the calendar!"
+        )
+        @has_permissions(administrator=True)
+        async def add(
+                interaction: nextcord.Interaction,
+                name: str = nextcord.SlashOption(
+                    name="name",
+                    description="Who?",
+                    required=True
+                ),
+                date: str = nextcord.SlashOption(
+                    name="date",
+                    description="When? (DD.MM.YYYY)",
+                    required=True
+                )
+        ):
+            command = birthday_command.Command(interaction, self, {"subcommand": "add", "name": name, "date": date})
+            await command.run()
+
+        @birthday.subcommand(
+            description="Reloads all birthdays!"
+        )
+        @has_permissions(administrator=True)
+        async def reload(
+                interaction: nextcord.Interaction
+        ):
+            command = birthday_command.Command(interaction, self, {"subcommand": "reload"})
             await command.run()
 
         @bot.slash_command(

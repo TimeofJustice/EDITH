@@ -247,6 +247,42 @@ class Command(command.Command):
                 )
 
                 await self.__interaction.send(embed=embed, ephemeral=True)
+        elif self.__data["command"] == "config":
+            category = self.__channel.category
+
+            if category is not None and self.__is_admin(self.__interaction):
+                room = db.SCMRoom.get_or_none(id=category.id)
+
+                if room:
+                    session = room.instance
+
+                    command = instance.Instance(view_callback=config_view.View, bot_instance=self.__bot_instance)
+                    await command.initiate(session)
+
+                    embed = nextcord.Embed(
+                        description=f"Config is now open!",
+                        colour=nextcord.Colour.green()
+                    )
+
+                    embed.set_author(
+                        name="Smart Channel Manager"
+                    )
+
+                    await self.__interaction.send(embed=embed, ephemeral=True)
+                else:
+                    embed = nextcord.Embed(
+                        description=f"This is not a S.C.M-Room!",
+                        colour=nextcord.Colour.orange()
+                    )
+
+                    embed.set_author(
+                        name="Smart Channel Manager",
+                        icon_url="https://images-ext-2.discordapp.net/external/"
+                                 "Ca6iHCDtx2yG5aw9ZAF6Ja-kJezcUu_N24TULp6Q9bc/https/cdn0.iconfinder.com/data/"
+                                 "icons/small-n-flat/24/678136-shield-warning-512.png"
+                    )
+
+                    await self.__interaction.send(embed=embed, ephemeral=True)
 
     def __is_admin(self, interaction):
         user = interaction.user
