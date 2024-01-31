@@ -62,7 +62,7 @@ class Command(command.Command):
                 overwrite=news_role_overwrites
             )
 
-            news_entry = db.News.create(
+            db.News.create(
                 id=news_channel.id,
                 guild=self.__guild.id,
                 role=news_role.id,
@@ -70,13 +70,13 @@ class Command(command.Command):
                 name=self.__data["name"],
             )
 
-            command_view = instance.Instance(view_callback=news_view.View, bot_instance=self.__bot_instance)
-            await command_view.create_manual(channel, self.__author, "news", data={"news_entry": news_channel.id})
-
             await self.__interaction.response.send_message(
                 "News channel created",
                 ephemeral=True
             )
+
+            command_view = instance.Instance(view_callback=news_view.View, bot_instance=self.__bot_instance)
+            await command_view.create_manual(channel, self.__author, "news", data={"news_entry": news_channel.id})
         elif self.__data['subcommand'] == "remove":
             if guild_settings.news_category is None:
                 await self.__interaction.response.send_message(
@@ -102,7 +102,14 @@ class Command(command.Command):
             news_channel = self.__guild.get_channel(news_entry.id)
             await news_channel.delete()
 
+            role_selector = self.__guild.get_channel(news_entry.instance.channel_id)
+
+            instance_message = await role_selector.fetch_message(news_entry.instance.id)
+
+            await instance_message.delete()
+
             news_entry.delete_instance()
+            news_entry.instance.delete_instance()
 
             news_entries = db.News.select().where(db.News.guild == self.__guild.id)
 
