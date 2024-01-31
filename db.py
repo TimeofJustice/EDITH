@@ -192,6 +192,7 @@ class News(ModelBase):
     role = BigIntegerField()
     description = TextField(null=True)
     name = CharField(max_length=255)
+    restricted = BigIntegerField(null=True)
     instance = ForeignKeyField(Instance, to_field="id", null=True)
 
 
@@ -207,6 +208,7 @@ new_columns = [
     "ALTER TABLE setting ADD COLUMN news_category BIGINT NULL;",
     "ALTER TABLE setting ADD COLUMN news_channel BIGINT NULL;",
     "ALTER TABLE news ADD COLUMN name VARCHAR(255) NULL;",
+    "ALTER TABLE news ADD COLUMN restricted BIGINT NULL;",
 ]
 
 # try to add new columns to existing tables

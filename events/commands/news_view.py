@@ -51,12 +51,31 @@ class View(view.View):
         embed = nextcord.Embed(
             title=f"{title}",
             description=f"{self.__news_entry.description}",
+            color=nextcord.Color.random()
         )
         embed.set_footer(text="ㅤ" * 27)
+
+        if self.__news_entry.restricted is not None:
+            restricted_role = self.__guild.get_role(self.__news_entry.restricted)
+
+            embed.add_field(
+                name="Restrictions",
+                value=f"Only {restricted_role.mention} can join this channel",
+                inline=False
+            )
+
         await self.__message.edit(content="", embed=embed, view=self)
 
     async def __callback_join(self, interaction: nextcord.Interaction, args):
         user = interaction.user
+
+        if self.__news_entry.restricted is not None:
+            role = self.__guild.get_role(self.__news_entry.restricted)
+            if role not in user.roles:
+                await interaction.response.send_message("You do not have permission to join this channel!",
+                                                        ephemeral=True)
+                return args
+
         role = self.__guild.get_role(self.__news_entry.role)
         await user.add_roles(role)
 

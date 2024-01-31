@@ -84,6 +84,9 @@ class Bot:
             return str(round(dif)) + " Seconds"
 
     def create_user_profile(self, member: nextcord.Member):
+        if member.bot:
+            return
+
         user = db.User.get_or_none(db.User.id == member.id)
 
         if not user:
@@ -813,14 +816,35 @@ class Bot:
         )
         @has_permissions(administrator=True)
         async def description(
+                interaction: nextcord.Interaction
+        ):
+            command = news_command.Command(interaction, self, {"subcommand": "description"})
+            await command.run()
+
+        @news.subcommand(
+            description="You can add a channel to the news-system!"
+        )
+        @has_permissions(administrator=True)
+        async def restrict(
                 interaction: nextcord.Interaction,
-                id: int = nextcord.SlashOption(
-                    name="id",
-                    description="Which channel do you want to remove?",
-                    required=True
+                restrict_role: nextcord.Role = nextcord.SlashOption(
+                    name="restrict-role",
+                    description="To which role should the channel be restricted?",
+                    required=False
+                ),
+                remove_restriction: bool = nextcord.SlashOption(
+                    name="remove-restriction",
+                    description="Should the restriction be removed?",
+                    required=False
                 )
         ):
-            command = news_command.Command(interaction, self, {"subcommand": "description", "id": id})
+            if remove_restriction:
+                restrict_role = None
+            else:
+                restrict_role = restrict_role.id
+
+            command = news_command.Command(interaction, self,
+                                           {"subcommand": "restrict", "restrict_role": restrict_role})
             await command.run()
 
         @bot.slash_command(

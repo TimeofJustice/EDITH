@@ -127,3 +127,26 @@ class Command(command.Command):
                     self.__channel.id, self.__bot_instance, self.__guild
                 )
             )
+        elif self.__data['subcommand'] == "restrict":
+            news_entry = db.News.get_or_none(db.News.id == self.__channel.id)
+
+            if news_entry is None:
+                await self.__interaction.response.send_message(
+                    "News channel not found",
+                    ephemeral=True
+                )
+
+                return
+
+            news_entry.restricted = self.__data['restrict_role']
+            news_entry.save()
+
+            await self.__interaction.response.send_message(
+                "News channel restricted",
+                ephemeral=True
+            )
+
+            session = news_entry.instance
+
+            command = instance.Instance(view_callback=news_view.View, bot_instance=self.__bot_instance)
+            await command.initiate(session)
