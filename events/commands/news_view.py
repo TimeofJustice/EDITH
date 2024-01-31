@@ -12,9 +12,9 @@ class Modal(nextcord.ui.Modal):
         self.__bot_instance = bot_instance
         self.__news_entry = db.News.get_or_none(db.News.id == news_entry)
 
-        super().__init__(f"Description for {self.__news_entry.name}")
+        super().__init__(f"{self.__news_entry.name}")
 
-        self.__description = nextcord.ui.TextInput(label=f"What is the description for {self.__news_entry.name}?",
+        self.__description = nextcord.ui.TextInput(label=f"What is the description?",
                                                    style=nextcord.TextInputStyle.paragraph,
                                                    placeholder=f"Description", required=True)
         self.add_item(self.__description)
