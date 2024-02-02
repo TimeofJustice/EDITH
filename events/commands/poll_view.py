@@ -4,6 +4,7 @@ import nextcord
 
 import db
 from events import view, instance
+from events.view import Button
 
 
 class Modal(nextcord.ui.Modal):
@@ -50,8 +51,12 @@ class View(view.View):
 
         self.__possibilities = instance_data["possibilities"]
         self.__question = instance_data["question"]
-        self.add_item(PollDropdown(self.__possibilities, self.__question,
-                                   self.__message, self.__author, self.__bot_instance))
+
+        self.__close = Button(label="Close", emoji="❌",
+                              row=1, args=(),
+                              style=nextcord.ButtonStyle.danger, callback=self.__callback_close)
+
+        self.__dropdown = None
 
     def __is_author(self, interaction: nextcord.Interaction, exception_owner=False):
         user = interaction.user
@@ -61,6 +66,13 @@ class View(view.View):
             return False
 
     async def init(self, **kwargs):
+        self.__dropdown = PollDropdown(self.__possibilities, self.__question,
+                                       self.__message, self.__author, self.__bot_instance)
+
+        self.clear_items()
+        self.add_item(self.__dropdown)
+        self.add_item(self.__close)
+
         text = ""
 
         index = 0
@@ -78,6 +90,21 @@ class View(view.View):
         embed.set_author(name=self.__author.name, icon_url=self.__author.avatar)
         embed.set_footer(text="ㅤ" * 22)
         await self.__message.edit(content="", embed=embed, view=self)
+
+    async def __callback_close(self, interaction: nextcord.Interaction, args):
+        if self.__is_author(interaction, True):
+            await self.__message.delete()
+
+            db.PollVote.delete().where(
+                db.PollVote.poll_id == self.__message.id
+            ).execute()
+            db.Instance.delete().where(
+                db.Instance.id == self.__message.id
+            ).execute()
+
+            await interaction.response.send_message("Poll has been deleted.", ephemeral=True)
+        else:
+            await interaction.response.send_message("You are not the author of this poll.", ephemeral=True)
 
 
 class PollDropdown(nextcord.ui.Select):
