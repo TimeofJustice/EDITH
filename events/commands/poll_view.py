@@ -117,7 +117,7 @@ class View(view.View):
                                color=nextcord.Colour.blue())
         embed.set_author(name=self.__author.name, icon_url=self.__author.avatar)
         embed.set_footer(text="ㅤ" * 22)
-        await self.__message.edit(embed=embed)
+        await self.init()
 
     async def __callback_vote(self, interaction: nextcord.Interaction, args):
         user = interaction.user
