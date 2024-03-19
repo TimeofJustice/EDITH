@@ -42,7 +42,7 @@ class Modal(nextcord.ui.Modal):
             await interaction.response.send_message("Year must be a number.", ephemeral=True)
             return
 
-        db.Quote.create(user=self.__from_user.id, quote=quote, year=year)
+        db.Quote.create(author=interaction.user.id, user=self.__from_user.id, quote=quote, year=year)
 
         await interaction.response.send_message("Quote has been added.", ephemeral=True)
 
@@ -72,18 +72,24 @@ class Command(command.Command):
             quote = db.Quote.select().order_by(db.fn.Random()).limit(1).get()
 
         from_user = await self.__guild.fetch_member(quote.user)
+        author_user = await self.__guild.fetch_member(quote.author)
 
-        if from_user is not None:
-            text = f"\"{quote.quote}\" - {from_user.mention}"
-        else:
-            text = f"\"{quote.quote}\" - Unknown User"
+        text = f"\"{quote.quote}\" - {quote.year}"
 
         embed = nextcord.Embed(
             description=text,
             colour=nextcord.Colour.random()
         )
 
-        embed.set_footer(text=f"#{quote.id}: {quote.year}")
+        if from_user is not None:
+            embed.set_author(name=from_user.display_name, icon_url=from_user.avatar.url)
+        else:
+            embed.set_author(name="Unknown User")
+
+        if author_user is not None:
+            embed.set_footer(text=f"#{quote.id} added by {author_user.display_name}")
+        else:
+            embed.set_footer(text=f"#{quote.id} added by Unknown User")
 
         await self.__interaction.response.send_message(embed=embed)
 

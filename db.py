@@ -198,6 +198,7 @@ class News(ModelBase):
 
 class Quote(ModelBase):
     id = BigAutoField(primary_key=True)
+    author = BigIntegerField(null=True)
     user = BigIntegerField(null=False)
     quote = TextField(null=False)
     year = IntegerField(null=False)
@@ -216,6 +217,7 @@ new_columns = [
     "ALTER TABLE setting ADD COLUMN news_channel BIGINT NULL;",
     "ALTER TABLE news ADD COLUMN name VARCHAR(255) NULL;",
     "ALTER TABLE news ADD COLUMN restricted BIGINT NULL;",
+    "ALTER TABLE quote ADD COLUMN author BIGINT NULL;",
 ]
 
 # try to add new columns to existing tables
