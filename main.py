@@ -16,7 +16,7 @@ import db
 from events import instance
 from events.commands import weather_command, purge_command, meme_command, up_command, about_command, music_command, \
     calculator_view, poll_view, backup_view, profile_view, tts_view, movie_view, scm_command, order66_view, \
-    logging_command, settings_command, animal_command, news_command, birthday_command, news_view
+    logging_command, settings_command, animal_command, news_command, birthday_command, news_view, quote_view
 from events.commands.music_views import play_view, search_view
 from events.commands.scm_views import config_view, queue_view, user_view
 from events.listeners import on_guild_remove_listener, on_member_join_listener, on_member_remove_listener, \
@@ -491,6 +491,53 @@ class Bot:
                 )
         ):
             command = weather_command.Command(interaction, self, {"city": city})
+            await command.run()
+
+        @bot.slash_command(
+            description="Get a random quote!",
+            guild_ids=guild_ids
+        )
+        async def quote(
+                interaction: nextcord.Interaction,
+                quote_id: int = nextcord.SlashOption(
+                    name="id",
+                    description="Which quote do you want to see?",
+                    required=False
+                )
+        ):
+            command = quote_view.Command(interaction, self, {"method": "view", "quote_id": quote_id})
+            await command.run()
+
+        @bot.slash_command(
+            name="quote-add",
+            description="Adds a quote to the database!",
+            guild_ids=guild_ids
+        )
+        async def quote_add(
+                interaction: nextcord.Interaction,
+                from_user: nextcord.User = nextcord.SlashOption(
+                    name="from",
+                    description="Who said it?",
+                    required=True
+                ),
+        ):
+            await interaction.response.send_modal(quote_view.Modal(from_user, self, interaction.guild))
+
+        @is_me()
+        @bot.slash_command(
+            name="quote-remove",
+            description="Removes a quote from the database!",
+            guild_ids=guild_ids
+        )
+        async def quote_remove(
+                interaction: nextcord.Interaction,
+                quote_id: int = nextcord.SlashOption(
+                    name="id",
+                    description="Which quote do you want to remove?",
+                    required=True
+                )
+        ):
+            command = quote_view.Command(interaction, self, {"method": "remove", "quote_id": quote_id})
             await command.run()
 
         @bot.slash_command(
@@ -973,6 +1020,8 @@ class Bot:
         @disable.error
         @notifications.error
         @default.error
+        @quote_add.error
+        @quote_remove.error
         async def command_error(error: nextcord.Interaction, ctx):
             if type(ctx) == ApplicationMissingPermissions or type(ctx) == ApplicationCheckFailure:
                 embed = nextcord.Embed(

@@ -196,11 +196,18 @@ class News(ModelBase):
     instance = ForeignKeyField(Instance, to_field="id", null=True)
 
 
+class Quote(ModelBase):
+    id = BigAutoField(primary_key=True)
+    user = BigIntegerField(null=False)
+    quote = TextField(null=False)
+    year = IntegerField(null=False)
+
+
 db.create_tables([Guild.Setting, Guild,
                   User.DailyTask, User.DailyProgress, User.WeeklyProgress, User.WeeklyTask, User.Statistic, User,
                   UserDailyTasks, UserWeeklyTasks,
                   Instance, PollVote, CustomChannel, Backup, SCMCreator, SCMRoom, SCMUser, SCMRole, SCMRoomRole,
-                  MovieGuess, VoiceSession, MusicSong, MusicInstance, Birthday, News])
+                  MovieGuess, VoiceSession, MusicSong, MusicInstance, Birthday, News, Quote])
 
 # add new columns to existing tables
 new_columns = [
