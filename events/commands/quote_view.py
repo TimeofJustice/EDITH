@@ -72,7 +72,11 @@ class Command(command.Command):
             quote = db.Quote.select().order_by(db.fn.Random()).limit(1).get()
 
         from_user = await self.__guild.fetch_member(quote.user)
-        author_user = await self.__guild.fetch_member(quote.author)
+
+        if quote.author is not None:
+            author_user = await self.__guild.fetch_member(quote.author)
+        else:
+            author_user = None
 
         text = f"\"{quote.quote}\" - {quote.year}"
 
